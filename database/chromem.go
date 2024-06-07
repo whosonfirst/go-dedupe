@@ -1,5 +1,7 @@
 package database
 
+// Remember: This assumes that Ollama is running in 'serve' mode on its default port.
+
 // https://ollama.com/blog/embedding-models
 // https://github.com/philippgille/chromem-go
 
