@@ -1,0 +1,105 @@
+package main
+
+// go run cmd/index-overture-venues/main.go /usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"flag"
+	"log/slog"
+	"os"
+
+	"github.com/sfomuseum/go-timings"
+	"github.com/aaronland/go-jsonl/walk"
+	"github.com/aaronland/gocloud-blob/bucket"		
+	"github.com/whosonfirst/go-dedupe/database"
+	"github.com/whosonfirst/go-dedupe/parser"
+	_ "github.com/whosonfirst/go-dedupe/venue"
+	"github.com/whosonfirst/go-overture/geojsonl"
+	_ "gocloud.dev/blob/fileblob"
+)
+
+func main() {
+
+	var database_uri string
+	var parser_uri string
+	var monitor_uri string
+	var bucket_uri string
+	var is_bzipped bool
+	
+	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&parser_uri, "parser-uri", "overtureplaces://", "...")
+	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
+	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
+	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
+
+	flag.Parse()
+
+	uris := flag.Args()
+	
+	ctx := context.Background()
+
+	db, err := database.NewDatabase(ctx, database_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to create new database, %v", err)
+	}
+
+	prsr, err := parser.NewParser(ctx, parser_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to create new parser, %v", err)
+	}
+
+	source_bucket, err := bucket.OpenBucket(ctx, bucket_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to open source bucket, %v", err)
+	}
+
+	defer source_bucket.Close()
+
+	monitor, err := timings.NewMonitor(ctx, monitor_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to create monitor, %v", err)
+	}
+	
+	monitor.Start(ctx, os.Stderr)
+	defer monitor.Stop(ctx)
+
+	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
+
+		c, err := prsr.Parse(ctx, rec.Body)
+
+		if err != nil {
+			return fmt.Errorf("Failed to parse body, %w", err)
+		}
+
+		// slog.Info("DEBUG", "path", path, "components", c)
+		
+		err = db.Add(ctx, c.ID, c.Content, c.Metadata)
+
+		if err != nil {
+			slog.Error("Failed to add record", "path", path, "line", rec.LineNumber, "components", c, "error", err)
+			return err
+		}
+
+		monitor.Signal(ctx)	
+		// slog.Info("OK", "path", path, "line", rec.LineNumber, "id", c.ID)
+		return nil
+	}
+
+	walk_opts := &geojsonl.WalkOptions{
+		SourceBucket: source_bucket,
+		Callback: walk_cb,
+		IsBzipped: is_bzipped,
+	}
+
+	err = geojsonl.Walk(ctx, walk_opts, uris...)
+
+	if err != nil {
+		log.Fatalf("Failed to walk, %v", err)
+	}
+}
