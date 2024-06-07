@@ -38,7 +38,7 @@ func NewOllamaEmbedder(ctx context.Context, uri string) (Embedder, error) {
 	// you wouldn't need to spin up the ollama server app but there were
 	// problems importing vendor deps (what? build tags, maybe?) as
 	// well as private variables.
-	
+
 	var cl *api.Client
 
 	if u.Host != "" {
