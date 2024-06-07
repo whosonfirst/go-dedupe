@@ -4,18 +4,18 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
-	"flag"
 	"log/slog"
 	"os"
 
-	"github.com/sfomuseum/go-timings"
 	"github.com/aaronland/go-jsonl/walk"
-	"github.com/aaronland/gocloud-blob/bucket"		
+	"github.com/aaronland/gocloud-blob/bucket"
+	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe/database"
+	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
-	_ "github.com/whosonfirst/go-dedupe/venue"
 	"github.com/whosonfirst/go-overture/geojsonl"
 	_ "gocloud.dev/blob/fileblob"
 )
@@ -27,7 +27,7 @@ func main() {
 	var monitor_uri string
 	var bucket_uri string
 	var is_bzipped bool
-	
+
 	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
 	flag.StringVar(&parser_uri, "parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	uris := flag.Args()
-	
+
 	ctx := context.Background()
 
 	db, err := database.NewDatabase(ctx, database_uri)
@@ -65,7 +65,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create monitor, %v", err)
 	}
-	
+
 	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
@@ -78,7 +78,7 @@ func main() {
 		}
 
 		// slog.Info("DEBUG", "path", path, "components", c)
-		
+
 		err = db.Add(ctx, c.ID, c.Content, c.Metadata)
 
 		if err != nil {
@@ -86,15 +86,15 @@ func main() {
 			return err
 		}
 
-		monitor.Signal(ctx)	
+		monitor.Signal(ctx)
 		// slog.Info("OK", "path", path, "line", rec.LineNumber, "id", c.ID)
 		return nil
 	}
 
 	walk_opts := &geojsonl.WalkOptions{
 		SourceBucket: source_bucket,
-		Callback: walk_cb,
-		IsBzipped: is_bzipped,
+		Callback:     walk_cb,
+		IsBzipped:    is_bzipped,
 	}
 
 	err = geojsonl.Walk(ctx, walk_opts, uris...)

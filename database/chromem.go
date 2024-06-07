@@ -1,5 +1,8 @@
 package database
 
+// https://ollama.com/blog/embedding-models
+// https://github.com/philippgille/chromem-go
+
 import (
 	"context"
 	"fmt"

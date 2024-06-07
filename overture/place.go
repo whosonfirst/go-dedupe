@@ -1,18 +1,19 @@
-package venue
+package overture
 
 import (
 	"context"
 	"fmt"
-	"strings"
 	_ "log/slog"
-	
+	"strings"
+
 	"github.com/mmcloughlin/geohash"
 	"github.com/paulmach/orb/geojson"
 	"github.com/tidwall/gjson"
+	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/parser"
 )
 
-type OvertureVenueParser struct {
+type OverturePlaceParser struct {
 	parser.Parser
 	precision uint
 	addr_keys []string
@@ -20,14 +21,14 @@ type OvertureVenueParser struct {
 
 func init() {
 	ctx := context.Background()
-	err := parser.RegisterParser(ctx, "overtureplaces", NewOvertureVenueParser)
+	err := parser.RegisterParser(ctx, "overtureplaces", NewOverturePlaceParser)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewOvertureVenueParser(ctx context.Context, uri string) (parser.Parser, error) {
+func NewOverturePlaceParser(ctx context.Context, uri string) (parser.Parser, error) {
 
 	addr_keys := []string{
 		"freeform",
@@ -36,15 +37,15 @@ func NewOvertureVenueParser(ctx context.Context, uri string) (parser.Parser, err
 		"country",
 	}
 
-	p := &OvertureVenueParser{
-		precision: DEFAULT_GEOHASH_PRECISION,
+	p := &OverturePlaceParser{
+		precision: dedupe.DEFAULT_GEOHASH_PRECISION,
 		addr_keys: addr_keys,
 	}
 
 	return p, nil
 }
 
-func (p *OvertureVenueParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
+func (p *OverturePlaceParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
 
 	id_rsp := gjson.GetBytes(body, "properties.id")
 
@@ -53,7 +54,7 @@ func (p *OvertureVenueParser) Parse(ctx context.Context, body []byte) (*parser.C
 	}
 
 	ovtr_id := id_rsp.String()
-	
+
 	name_rsp := gjson.GetBytes(body, "properties.names.primary")
 
 	content := []string{

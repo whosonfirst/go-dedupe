@@ -1,4 +1,4 @@
-package venue
+package whosonfirst
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/mmcloughlin/geohash"
 	"github.com/tidwall/gjson"
+	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/parser"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 )
@@ -29,7 +30,7 @@ func init() {
 func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (parser.Parser, error) {
 
 	p := &WhosOnFirstVenueParser{
-		precision: DEFAULT_GEOHASH_PRECISION,
+		precision: dedupe.DEFAULT_GEOHASH_PRECISION,
 	}
 
 	return p, nil
