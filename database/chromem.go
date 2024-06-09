@@ -17,6 +17,7 @@ import (
 
 type ChromemDatabase struct {
 	collection *chromem.Collection
+	foo        int
 }
 
 func init() {
@@ -52,6 +53,7 @@ func NewChromemDatabase(ctx context.Context, uri string) (Database, error) {
 
 	db := &ChromemDatabase{
 		collection: collection,
+		foo:        5,
 	}
 
 	return db, nil
@@ -77,7 +79,7 @@ func (db *ChromemDatabase) Add(ctx context.Context, id string, text string, meta
 
 func (db *ChromemDatabase) Query(ctx context.Context, text string) ([]*QueryResult, error) {
 
-	rsp, err := db.collection.Query(ctx, text, 1, nil, nil)
+	rsp, err := db.collection.Query(ctx, text, db.foo, nil, nil)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query, %w", err)

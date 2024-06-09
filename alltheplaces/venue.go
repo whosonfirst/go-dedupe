@@ -21,7 +21,7 @@ type AllThePlacesVenueParser struct {
 
 func init() {
 	ctx := context.Background()
-	err := parser.RegisterParser(ctx, "overtureplaces", NewAllThePlacesVenueParser)
+	err := parser.RegisterParser(ctx, "alltheplaces", NewAllThePlacesVenueParser)
 
 	if err != nil {
 		panic(err)
