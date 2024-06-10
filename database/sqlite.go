@@ -4,18 +4,19 @@ package database
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 	"sync/atomic"
 
 	aa_sqlite "github.com/aaronland/go-sqlite"
 	_ "github.com/asg017/sqlite-vss/bindings/go"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/embeddings"
 )
 
@@ -59,8 +60,6 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 	engine := "sqlite3"
 
-	log.Println(engine, dsn)
-
 	sql_db, err := sql.Open(engine, dsn)
 
 	if err != nil {
@@ -90,22 +89,18 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 func (db *SQLiteDatabase) Add(ctx context.Context, id string, text string, metadata map[string]string) error {
 
-	e, err := db.embedder.Embeddings(ctx, text)
-
-	if err != nil {
-		return err
-	}
-
-	enc_e, err := json.Marshal(e)
+	enc_e, err := db.getEmbeddings(ctx, text)
 
 	if err != nil {
 		return err
 	}
 
 	row_id := atomic.AddInt64(&db.rows, 1)
-	log.Println("ROW ID", row_id)
 
 	q := fmt.Sprintf("INSERT INTO %s(rowid, embeddings) VALUES (?, ?)", sqlite_locations_vss_table)
+
+	sum := sha256.Sum256(enc_e)
+	log.Printf("%s: %d, %x\n", text, row_id, sum)
 
 	_, err = db.database.ExecContext(ctx, q, row_id, string(enc_e))
 
@@ -117,7 +112,64 @@ func (db *SQLiteDatabase) Add(ctx context.Context, id string, text string, metad
 }
 
 func (db *SQLiteDatabase) Query(ctx context.Context, text string) ([]*QueryResult, error) {
-	return nil, dedupe.NotImplemented()
+
+	enc_e, err := db.getEmbeddings(ctx, text)
+
+	if err != nil {
+		return nil, err
+	}
+
+	q := fmt.Sprintf("SELECT rowid, distance FROM %s WHERE vss_search(embeddings, ?)", sqlite_locations_vss_table)
+
+	sum := sha256.Sum256(enc_e)
+	log.Printf("%s: %x\n", text, sum)
+
+	rows, err := db.database.QueryContext(ctx, q, string(enc_e))
+
+	if err != nil {
+		log.Println("SAD")
+		return nil, err
+	}
+
+	results := make([]*QueryResult, 0)
+
+	for rows.Next() {
+
+		var rowid int64
+		var distance float32
+
+		err = rows.Scan(&rowid, &distance)
+		if err != nil {
+			return nil, err
+		}
+
+		qr := &QueryResult{
+			ID:         strconv.FormatInt(rowid, 10),
+			Similarity: distance,
+		}
+
+		results = append(results, qr)
+	}
+
+	log.Println("COUNT", len(results), q)
+	return results, nil
+}
+
+func (db *SQLiteDatabase) getEmbeddings(ctx context.Context, text string) ([]byte, error) {
+
+	e, err := db.embedder.Embeddings(ctx, text)
+
+	if err != nil {
+		return nil, err
+	}
+
+	enc_e, err := json.Marshal(e)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return enc_e, nil
 }
 
 func (db *SQLiteDatabase) setupTables(ctx context.Context) error {
@@ -154,8 +206,6 @@ func (db *SQLiteDatabase) setupTables(ctx context.Context) error {
 
 func (db *SQLiteDatabase) setupTable(ctx context.Context, table string) error {
 
-	log.Println("Table", table)
-
 	has_table, err := aa_sqlite.HasTableWithSQLDB(ctx, db.database, table)
 
 	if err != nil {
@@ -163,7 +213,6 @@ func (db *SQLiteDatabase) setupTable(ctx context.Context, table string) error {
 	}
 
 	if has_table {
-		log.Println("exists", table)
 		return nil
 	}
 
@@ -174,14 +223,11 @@ func (db *SQLiteDatabase) setupTable(ctx context.Context, table string) error {
 		return err
 	}
 
-	log.Println("WTF", table, string(schema))
-
 	_, err = db.database.ExecContext(ctx, string(schema))
 
 	if err != nil {
 		return err
 	}
 
-	log.Println("POO", table)
 	return nil
 }

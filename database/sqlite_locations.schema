@@ -1,5 +1,5 @@
 CREATE TABLE locations (
        id TEXT PRIMARY KEY,
-       metadata JSON,
-       embeddings JSON
+       content TEXT,
+       embeddings_row_id INTEGER
 );
