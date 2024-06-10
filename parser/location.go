@@ -20,7 +20,9 @@ func (c *Location) String() string {
 }
 
 func (c *Location) Content() string {
-	// Something something libpostal c.Address...
+	// Something something libpostal c.Address... or maybe just rely on metadata for
+	// structured data but "metadata" seems to be specific to philippgille/chromem-go
+	// so maybe not?
 	return fmt.Sprintf("A venue named %s, located at %s", c.Name, c.Address)
 }
 
