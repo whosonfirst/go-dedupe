@@ -6,6 +6,8 @@ require (
 	github.com/aaronland/go-jsonl v0.0.20
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.0.17
+	github.com/asg017/sqlite-vss/bindings/go v0.0.0-20240505200016-8d3c6ff2fca6
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mmcloughlin/geohash v0.10.0
 	github.com/ollama/ollama v0.1.42
 	github.com/paulmach/orb v0.11.1
