@@ -3,10 +3,10 @@ package alltheplaces
 import (
 	"context"
 	"fmt"
-	_ "log/slog"
+	_ "log"
+	"log/slog"
 	"strings"
 
-	"github.com/mmcloughlin/geohash"
 	"github.com/paulmach/orb/geojson"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
@@ -50,16 +50,18 @@ func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*pars
 	id_rsp := gjson.GetBytes(body, "id")
 
 	if !id_rsp.Exists() {
-		return nil, fmt.Errorf("Missing 'id' property")
+		return nil, dedupe.InvalidRecord("#", fmt.Errorf("Missing 'id' property"))
 	}
 
-	ovtr_id := id_rsp.String()
+	id := id_rsp.String()
 
-	name_rsp := gjson.GetBytes(body, "properties.names")
+	name_rsp := gjson.GetBytes(body, "properties.name")
 
-	content := []string{
-		name_rsp.String(),
+	if !name_rsp.Exists() {
+		return nil, dedupe.InvalidRecord(id, fmt.Errorf("Missing 'name' property"))
 	}
+
+	name := name_rsp.String()
 
 	addr_components := make([]string, 0)
 
@@ -73,11 +75,20 @@ func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*pars
 		}
 	}
 
+	if len(addr_components) == 0 {
+		return nil, dedupe.InvalidRecord(id, fmt.Errorf("Missing 'address' properties"))
+	}
+
 	// Something something something libpostal...
 
-	content = append(content, strings.Join(addr_components, " "))
+	addr := strings.Join(addr_components, " ")
 
 	geom_rsp := gjson.GetBytes(body, "geometry")
+
+	if !geom_rsp.Exists() || geom_rsp.String() == "" {
+		slog.Warn("Record is missing geometry", "id", id)
+		return nil, dedupe.InvalidRecord(id, nil)
+	}
 
 	geom, err := geojson.UnmarshalGeometry([]byte(geom_rsp.String()))
 
@@ -88,18 +99,13 @@ func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*pars
 	f := geojson.NewFeature(geom.Geometry())
 	centroid := f.Point()
 
-	metadata := make(map[string]string)
-
-	lon := centroid[0]
-	lat := centroid[1]
-
-	gh := geohash.EncodeWithPrecision(lat, lon, p.precision)
-	metadata["geohash"] = gh
+	c_id := dedupe.AllThePlacesId(id)
 
 	c := &parser.Components{
-		ID:       ovtr_id,
-		Content:  strings.Join(content, " "),
-		Metadata: metadata,
+		ID:       c_id,
+		Name:     name,
+		Address:  addr,
+		Centroid: &centroid,
 	}
 
 	return c, nil

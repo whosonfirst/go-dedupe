@@ -2,11 +2,8 @@ package whosonfirst
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 
-	"github.com/mmcloughlin/geohash"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/parser"
@@ -74,16 +71,14 @@ func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parse
 		return nil, err
 	}
 
-	lon := centroid[0]
-	lat := centroid[1]
-
-	gh := geohash.EncodeIntWithPrecision(lat, lon, p.precision)
-	metadata["geohash"] = fmt.Sprintf("%s", gh)
+	str_id := strconv.FormatInt(id, 10)
+	c_id := dedupe.WhosOnFirstId(str_id)
 
 	c := &parser.Components{
-		ID:       strconv.FormatInt(id, 10),
-		Content:  strings.Join(content, " "),
-		Metadata: metadata,
+		ID:       c_id,
+		Name:     name,
+		Address:  "",
+		Centroid: centroid,
 	}
 
 	return c, nil

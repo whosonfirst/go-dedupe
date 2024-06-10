@@ -10,12 +10,6 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
-type Components struct {
-	ID       string            `json:"id"`
-	Content  string            `json:"content"`
-	Metadata map[string]string `json:"metadata"`
-}
-
 type Parser interface {
 	Parse(context.Context, []byte) (*Components, error)
 }

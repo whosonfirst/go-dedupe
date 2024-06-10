@@ -98,7 +98,7 @@ func main() {
 			return fmt.Errorf("Failed to parse body, %w", err)
 		}
 
-		embeddings, err := embdr.Embeddings(ctx, c.Content)
+		embeddings, err := embdr.Embeddings(ctx, c.Content())
 
 		if err != nil {
 			return fmt.Errorf("Failed to derive embeddings for %s, %w", path, err)
@@ -106,8 +106,8 @@ func main() {
 
 		r := Row{
 			ID:         c.ID,
-			Content:    c.Content,
-			Metadata:   c.Metadata,
+			Content:    c.Content(),
+			Metadata:   c.Metadata(),
 			Embeddings: embeddings,
 		}
 

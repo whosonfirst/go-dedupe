@@ -110,7 +110,7 @@ func main() {
 				log.Fatalf("Failed to parse feature at offset %d for %s, %v", idx, path, err)
 			}
 
-			results, err := db.Query(ctx, c.Content)
+			results, err := db.Query(ctx, c.Content())
 
 			if err != nil {
 				log.Fatalf("Failed to query for feature at offset %d for %s: %s, %v", idx, path, c.Content, err)
