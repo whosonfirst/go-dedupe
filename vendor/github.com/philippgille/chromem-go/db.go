@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"log/slog"
+	"time"
 )
 
 // EmbeddingFunc is a function that creates embeddings for a given text.
@@ -98,12 +101,21 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 		return nil, fmt.Errorf("path is not a directory: %s", path)
 	}
 
+	t1 := time.Now()
+	slog.Info("Read dir", "path", path, "time", t1)
+	
 	// Otherwise, read all collections and their documents from the directory.
 	dirEntries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read persistence directory: %w", err)
 	}
-	for _, dirEntry := range dirEntries {
+
+	slog.Info("Read dir", "path", path, "count", len(dirEntries), "time", time.Since(t1))
+	
+	for idx, dirEntry := range dirEntries {
+
+		slog.Info("Dir", "index", idx, "path", dirEntry)
+		
 		// Collections are subdirectories, so skip any files (which the user might
 		// have placed).
 		if !dirEntry.IsDir() {
@@ -114,10 +126,18 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 		// TODO: Parallelize this (e.g. chan with $numCPU buffer and $numCPU goroutines
 		// reading from it).
 		collectionPath := filepath.Join(path, dirEntry.Name())
+
+		t2 := time.Now()
+		slog.Info("Read dir (collection)", "path", collectionPath, "time", t2)
+		
 		collectionDirEntries, err := os.ReadDir(collectionPath)
+
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
+
+		slog.Info("Read dir (collection)", "path", collectionPath, "count", len(collectionDirEntries), "time", time.Since(t2))
+		
 		c := &Collection{
 			documents:        make(map[string]*Document),
 			persistDirectory: collectionPath,
@@ -135,6 +155,8 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 			}
 
 			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
+			// slog.Info("fpath", "path", fPath)
+			
 			// Differentiate between collection metadata, documents and other files.
 			if collectionDirEntry.Name() == metadataFileName+ext {
 				// Read name and metadata

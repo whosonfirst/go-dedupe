@@ -47,7 +47,7 @@ func NewAllThePlacesVenueParser(ctx context.Context, uri string) (parser.Parser,
 
 func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
 
-	id_rsp := gjson.GetBytes(body, "properties.id")
+	id_rsp := gjson.GetBytes(body, "id")
 
 	if !id_rsp.Exists() {
 		return nil, fmt.Errorf("Missing 'id' property")
