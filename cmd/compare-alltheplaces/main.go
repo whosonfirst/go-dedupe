@@ -1,5 +1,14 @@
 package main
 
+/*
+
+[asc][asc@SD-931-4][11:05:22] /usr/local/whosonfirst/go-whosonfirst-dedupe                                                                                                                     > go run cmd/compare-alltheplaces/main.go /usr/local/data/alltheplaces/dunkin_us.geojson
+2024/06/09 11:05:23 INFO Create database
+2024/06/09 11:17:10 Failed to create new database, Failed to create database, couldn't read document: couldn't open file: open /usr/local/data/venues.db/bc318ecb/173de102.gob: too many open files
+exit status 1
+
+*/
+
 import (
 	"context"
 	"flag"

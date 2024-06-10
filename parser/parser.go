@@ -11,9 +11,9 @@ import (
 )
 
 type Components struct {
-	ID       string
-	Content  string
-	Metadata map[string]string
+	ID       string            `json:"id"`
+	Content  string            `json:"content"`
+	Metadata map[string]string `json:"metadata"`
 }
 
 type Parser interface {

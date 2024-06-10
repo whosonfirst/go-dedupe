@@ -14,14 +14,18 @@ require (
 	github.com/tidwall/gjson v1.17.1
 	github.com/whosonfirst/go-overture v0.0.0-20240605010857-a1184ac905fc
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
+	github.com/whosonfirst/go-writer-jsonl/v3 v3.0.1
+	github.com/whosonfirst/go-writer/v3 v3.1.1
 	gocloud.dev v0.37.0
 )
 
 require (
 	github.com/aaronland/go-json-query v0.1.4 // indirect
+	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
+	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
