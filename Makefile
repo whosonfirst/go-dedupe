@@ -10,7 +10,7 @@ OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 OS_DSN="https://localhost:9200/dedupe?username=admin&password=$(OS_PSWD)&insecure=true&require-tls=true"
 ENC_OS_DSN=$(shell $(URLESCAPE) $(OS_DSN))
 
-OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&bulk-index=true
+OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&bulk-index=false
 
 # https://opensearch.org/docs/latest/install-and-configure/install-opensearch/docker/
 #
