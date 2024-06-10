@@ -100,3 +100,7 @@ func (db *ChromemDatabase) Query(ctx context.Context, text string) ([]*QueryResu
 
 	return results, nil
 }
+
+func (db *ChromemDatabase) Flush(ctx context.Context) error {
+	return nil
+}

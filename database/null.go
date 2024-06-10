@@ -28,3 +28,7 @@ func (db *NullDatabase) Query(ctx context.Context, text string) ([]*QueryResult,
 	results := make([]*QueryResult, 0)
 	return results, nil
 }
+
+func (db *NullDatabase) Flush(ctx context.Context) error {
+	return nil
+}

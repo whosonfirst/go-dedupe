@@ -10,18 +10,6 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
-type QueryResult struct {
-	ID        string
-	Metadata  map[string]string
-	Embedding []float32
-	Content   string
-
-	// The cosine similarity between the query and the document.
-	// The higher the value, the more similar the document is to the query.
-	// The value is in the range [-1, 1].
-	Similarity float32
-}
-
 type Database interface {
 	Add(context.Context, string, string, map[string]string) error
 
@@ -31,6 +19,8 @@ type Database interface {
 	Query(context.Context, string) ([]*QueryResult, error)
 
 	// QueryEmbeddings(context.Context, []float64) ([]*QueryResult, error)
+
+	Flush(context.Context) error
 }
 
 // DatabaseInitializationFunc is a function defined by individual database package and used to create

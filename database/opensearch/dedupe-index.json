@@ -1,7 +1,7 @@
 {
   "settings": {
     "index.knn": true,
-    "default_pipeline": "nlp-ingest-pipeline"
+    "default_pipeline": "dedupe-ingest-pipeline"
   },
   "mappings": {
     "properties": {
