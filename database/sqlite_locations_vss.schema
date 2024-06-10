@@ -1,0 +1,3 @@
+CREATE VIRTUAL TABLE locations_vss USING vss0 (
+       embeddings(1024)
+);

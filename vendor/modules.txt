@@ -7,6 +7,9 @@ github.com/aaronland/go-jsonl/walk
 # github.com/aaronland/go-roster v1.0.0
 ## explicit; go 1.16
 github.com/aaronland/go-roster
+# github.com/aaronland/go-sqlite v0.2.2
+## explicit; go 1.18
+github.com/aaronland/go-sqlite
 # github.com/aaronland/gocloud-blob v0.0.17
 ## explicit; go 1.22.2
 github.com/aaronland/gocloud-blob/bucket

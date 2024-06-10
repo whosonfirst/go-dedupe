@@ -1,0 +1,14 @@
+*~
+pkg
+src
+!vendor/src
+bin/go-bindata
+bin/wof-*
+*.log
+*.json
+.travis.yml
+*.db*
+*.db-journal
+inventory.html
+inventory.json
+.DS_Store

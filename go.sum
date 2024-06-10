@@ -16,6 +16,8 @@ github.com/aaronland/go-jsonl v0.0.20 h1:11bkmA2vHNpPOL8295ZRnXg2W9S/A6cXvTLu+fU
 github.com/aaronland/go-jsonl v0.0.20/go.mod h1:qRcIUnR2KzgCQCPl/Hdu56P7iowEHmVZuiEg0/DaZUQ=
 github.com/aaronland/go-roster v1.0.0 h1:FRDGrTqsYySKjWnAhbBGXyeGlI/o5/t9FZYCbUmyQtI=
 github.com/aaronland/go-roster v1.0.0/go.mod h1:KIsYZgrJlAsyb9LsXSCvlqvbcCBVjCSqcQiZx42i9ro=
+github.com/aaronland/go-sqlite v0.2.2 h1:lWLgp4ZpVQkVWUI+F3f3/MNKKOkaTr6iLHGBGg7sm8s=
+github.com/aaronland/go-sqlite v0.2.2/go.mod h1:GPFZKO98fn7onei3ypYioxxni/0Hbvq+6Z8YaaL1cQY=
 github.com/aaronland/gocloud-blob v0.0.17 h1:TjsM6uT+XQ8SejlFNDgyxOXKEc90gZlPI0ov2EcMUHI=
 github.com/aaronland/gocloud-blob v0.0.17/go.mod h1:Mk/2NKSaWsLTTwdqE3AEVms4W5v+Wv1WS1Z5HyZmhHA=
 github.com/asg017/sqlite-vss/bindings/go v0.0.0-20240505200016-8d3c6ff2fca6 h1:zOexzTeDtpA1r7zEzTEdbRC7IxYVCWkWPvDtX3+n090=

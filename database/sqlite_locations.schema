@@ -1,0 +1,5 @@
+CREATE TABLE locations (
+       id TEXT PRIMARY KEY,
+       metadata JSON,
+       embeddings JSON
+);

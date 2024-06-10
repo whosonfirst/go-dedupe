@@ -1,9 +1,0 @@
-CREATE TABLE locations (
-       id TEXT PRIMARY KEY
-       metadata JSON
-       embeddings JSON
-)
-
-CREATE VIRTUAL TABLE location_vss USING vss(
-       embeddings(1024)
-);
