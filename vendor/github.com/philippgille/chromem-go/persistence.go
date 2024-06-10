@@ -137,9 +137,6 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 // optionally be compressed as gzip and/or encrypted with AES-GCM. The encryption
 // key must be 32 bytes long.
 func read(filePath string, obj any, encryptionKey string) error {
-
-	// slog.Info("Read", "path", filePath)
-	
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -155,7 +152,7 @@ func read(filePath string, obj any, encryptionKey string) error {
 	// To reduce memory usage we chain the readers instead of buffering, so we start
 	// from the end. For the decryption there's no reader though.
 
-	var r io.ReadCloser
+	var r io.Reader
 
 	// Decrypt if an encryption key is provided
 	if encryptionKey != "" {
@@ -181,15 +178,13 @@ func read(filePath string, obj any, encryptionKey string) error {
 			return fmt.Errorf("couldn't decrypt data: %w", err)
 		}
 
-		r = io.NopCloser(bytes.NewReader(data))
+		r = bytes.NewReader(data)
 	} else {
 		var err error
 		r, err = os.Open(filePath)
 		if err != nil {
 			return fmt.Errorf("couldn't open file: %w", err)
 		}
-
-		defer r.Close()
 	}
 
 	// Determine if the file is compressed

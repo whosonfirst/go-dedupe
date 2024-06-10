@@ -1,0 +1,26 @@
+{
+  "settings": {
+    "index.knn": true,
+    "default_pipeline": "nlp-ingest-pipeline"
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "text"
+      },
+      "content_embedding": {
+        "type": "knn_vector",
+        "dimension": 768,
+        "method": {
+          "engine": "lucene",
+          "space_type": "l2",
+          "name": "hnsw",
+          "parameters": {}
+        }
+      },
+      "content": {
+        "type": "text"
+      }
+    }
+  }
+}

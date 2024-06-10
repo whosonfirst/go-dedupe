@@ -1,0 +1,14 @@
+{
+  "description": "A text embedding pipeline",
+  "processors": [
+    {
+      "text_embedding": {
+        "model_id": "bQ1J8ooBpBj3wT4HVUsb",
+        "field_map": {
+          "content": "content_embedding"
+        }
+      }
+    }
+  ]
+}
+
