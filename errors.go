@@ -32,3 +32,25 @@ func (e *InvalidRecordError) Error() string {
 func (e *InvalidRecordError) String() string {
 	return e.Error()
 }
+
+type NotImplementedError struct{}
+
+func NotImplemented() *NotImplementedError {
+
+	e := &NotImplementedError{}
+
+	return e
+}
+
+func IsNotImplementedError(e error) bool {
+	var invalid *NotImplementedError
+	return errors.As(e, &invalid)
+}
+
+func (e *NotImplementedError) Error() string {
+	return "Not implemented"
+}
+
+func (e *NotImplementedError) String() string {
+	return e.Error()
+}

@@ -33,7 +33,7 @@ func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (parser.Parser, 
 	return p, nil
 }
 
-func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
+func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parser.Location, error) {
 
 	id, err := properties.Id(body)
 
@@ -74,7 +74,7 @@ func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parse
 	str_id := strconv.FormatInt(id, 10)
 	c_id := dedupe.WhosOnFirstId(str_id)
 
-	c := &parser.Components{
+	c := &parser.Location{
 		ID:       c_id,
 		Name:     name,
 		Address:  "",

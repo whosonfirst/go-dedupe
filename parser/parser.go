@@ -11,7 +11,7 @@ import (
 )
 
 type Parser interface {
-	Parse(context.Context, []byte) (*Components, error)
+	Parse(context.Context, []byte) (*Location, error)
 }
 
 // ParserInitializationFunc is a function defined by individual parser package and used to create

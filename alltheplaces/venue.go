@@ -45,7 +45,7 @@ func NewAllThePlacesVenueParser(ctx context.Context, uri string) (parser.Parser,
 	return p, nil
 }
 
-func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
+func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*parser.Location, error) {
 
 	id_rsp := gjson.GetBytes(body, "id")
 
@@ -101,7 +101,7 @@ func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*pars
 
 	c_id := dedupe.AllThePlacesId(id)
 
-	c := &parser.Components{
+	c := &parser.Location{
 		ID:       c_id,
 		Name:     name,
 		Address:  addr,

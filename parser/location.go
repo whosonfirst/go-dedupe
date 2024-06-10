@@ -7,7 +7,7 @@ import (
 	"github.com/paulmach/orb"
 )
 
-type Components struct {
+type Location struct {
 	ID       string            `json:"id"`
 	Name     string            `json:"name"`
 	Address  string            `json:"address"`
@@ -15,15 +15,16 @@ type Components struct {
 	Custom   map[string]string `json:"custom"`
 }
 
-func (c *Components) String() string {
+func (c *Location) String() string {
 	return fmt.Sprintf("[%s] %s", c.ID, c.Content())
 }
 
-func (c *Components) Content() string {
+func (c *Location) Content() string {
+	// Something something libpostal c.Address...
 	return fmt.Sprintf("A venue named %s, located at %s", c.Name, c.Address)
 }
 
-func (c *Components) Metadata() map[string]string {
+func (c *Location) Metadata() map[string]string {
 
 	m := make(map[string]string)
 
@@ -37,5 +38,6 @@ func (c *Components) Metadata() map[string]string {
 	gh := geohash.EncodeIntWithPrecision(lat, lon, 5)
 	m["geohash"] = fmt.Sprintf("%s", gh)
 
+	// Something something libpostal parse c.Address... and add components as metadata?
 	return m
 }

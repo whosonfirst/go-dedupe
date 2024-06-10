@@ -44,7 +44,7 @@ func NewOverturePlaceParser(ctx context.Context, uri string) (parser.Parser, err
 	return p, nil
 }
 
-func (p *OverturePlaceParser) Parse(ctx context.Context, body []byte) (*parser.Components, error) {
+func (p *OverturePlaceParser) Parse(ctx context.Context, body []byte) (*parser.Location, error) {
 
 	id_rsp := gjson.GetBytes(body, "properties.id")
 
@@ -73,8 +73,6 @@ func (p *OverturePlaceParser) Parse(ctx context.Context, body []byte) (*parser.C
 		for k, v := range rsp.Map() {
 			addr[k] = v.String()
 		}
-
-		addr_components := make([]string, 0)
 
 		for _, k := range p.addr_keys {
 
@@ -107,7 +105,7 @@ func (p *OverturePlaceParser) Parse(ctx context.Context, body []byte) (*parser.C
 
 	c_id := dedupe.OvertureId(id)
 
-	c := &parser.Components{
+	c := &parser.Location{
 		ID:       c_id,
 		Name:     name,
 		Address:  addr,
