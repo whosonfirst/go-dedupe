@@ -1,5 +1,7 @@
 package embeddings
 
+// https://github.com/asg017/sqlite-vss
+
 import (
 	"context"
 	"fmt"
