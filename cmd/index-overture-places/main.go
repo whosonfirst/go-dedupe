@@ -71,7 +71,7 @@ func main() {
 
 	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
-		c, err := prsr.Parse(ctx, rec.Body)
+		loc, err := prsr.Parse(ctx, rec.Body)
 
 		if err != nil {
 			return fmt.Errorf("Failed to parse body, %w", err)
@@ -79,15 +79,15 @@ func main() {
 
 		// slog.Info("DEBUG", "path", path, "components", c)
 
-		err = db.Add(ctx, c.ID, c.Content(), c.Metadata())
+		err = db.Add(ctx, loc.ID, loc.Content(), loc.Metadata())
 
 		if err != nil {
-			slog.Error("Failed to add record", "path", path, "line", rec.LineNumber, "components", c, "error", err)
+			slog.Error("Failed to add record", "path", path, "line", rec.LineNumber, "location", loc, "error", err)
 			return err
 		}
 
 		monitor.Signal(ctx)
-		// slog.Info("OK", "path", path, "line", rec.LineNumber, "id", c.ID)
+		slog.Info("OK", "path", path, "line", rec.LineNumber, "location", loc)
 		return nil
 	}
 

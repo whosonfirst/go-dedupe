@@ -23,7 +23,8 @@ func (c *Location) Content() string {
 	// Something something libpostal c.Address... or maybe just rely on metadata for
 	// structured data but "metadata" seems to be specific to philippgille/chromem-go
 	// so maybe not?
-	return fmt.Sprintf("A venue named %s, located at %s", c.Name, c.Address)
+
+	return fmt.Sprintf("A venue named %s, contained by the geohash %s, located at %s", c.Name, c.Geohash(), c.Address)
 }
 
 func (c *Location) Metadata() map[string]string {
@@ -34,12 +35,14 @@ func (c *Location) Metadata() map[string]string {
 		m[k] = v
 	}
 
-	lon := c.Centroid[0]
-	lat := c.Centroid[1]
-
-	gh := geohash.EncodeIntWithPrecision(lat, lon, 5)
-	m["geohash"] = fmt.Sprintf("%s", gh)
+	m["geohash"] = c.Geohash()
 
 	// Something something libpostal parse c.Address... and add components as metadata?
 	return m
+}
+
+func (c *Location) Geohash() string {
+	lon := c.Centroid[0]
+	lat := c.Centroid[1]
+	return geohash.EncodeWithPrecision(lat, lon, 5)
 }
