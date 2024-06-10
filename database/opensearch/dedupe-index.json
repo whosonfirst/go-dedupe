@@ -8,6 +8,9 @@
       "id": {
         "type": "text"
       },
+      "content": {
+        "type": "text"
+      },	
       "content_embedding": {
         "type": "knn_vector",
         "dimension": 768,
@@ -17,9 +20,6 @@
           "name": "hnsw",
           "parameters": {}
         }
-      },
-      "content": {
-        "type": "text"
       }
     }
   }

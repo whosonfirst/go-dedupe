@@ -13,6 +13,7 @@ import (
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
 	"github.com/sfomuseum/go-timings"
+	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
@@ -71,23 +72,30 @@ func main() {
 
 	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
+		logger := slog.Default()
+		logger = logger.With("path", path)
+		logger = logger.With("line number", rec.LineNumber)
+
 		loc, err := prsr.Parse(ctx, rec.Body)
 
-		if err != nil {
+		if dedupe.IsInvalidRecordError(err) {
+			logger.Warn("Invalid record")
+			return nil
+		} else if err != nil {
 			return fmt.Errorf("Failed to parse body, %w", err)
 		}
 
-		// slog.Info("DEBUG", "path", path, "components", c)
+		logger = logger.With("location", loc)
 
 		err = db.Add(ctx, loc.ID, loc.Content(), loc.Metadata())
 
 		if err != nil {
-			slog.Error("Failed to add record", "path", path, "line", rec.LineNumber, "location", loc, "error", err)
+			logger.Error("Failed to add record", "error", err)
 			return err
 		}
 
 		monitor.Signal(ctx)
-		slog.Info("OK", "path", path, "line", rec.LineNumber, "location", loc)
+		logger.Info("OK")
 		return nil
 	}
 

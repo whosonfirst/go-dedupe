@@ -10,7 +10,7 @@ OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 OS_DSN="https://localhost:9200/dedupe?username=admin&password=$(OS_PSWD)&insecure=true&require-tls=true"
 ENC_OS_DSN=$(shell $(URLESCAPE) $(OS_DSN))
 
-OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&bulk-index=false
+OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&bulk-index=true
 
 # https://opensearch.org/docs/latest/install-and-configure/install-opensearch/docker/
 #
@@ -27,6 +27,27 @@ local-server:
 		-v opensearch-data1:/usr/local/data/opensearch \
 		opensearchproject/opensearch:latest
 
+local-aliases:
+	curl -k -s \
+	-H 'Content-Type: application/json' \
+	-X GET \
+	https://admin:$(OS_PSWD)@localhost:9200/_aliases \
+	| jq
+
+local-settings:
+	curl -k -s \
+	-H 'Content-Type: application/json' \
+	-X GET \
+	https://admin:$(OS_PSWD)@localhost:9200/dedupe/_settings \
+	| jq
+
+local-mappings:
+	curl -k -s \
+	-H 'Content-Type: application/json' \
+	-X GET \
+	https://admin:$(OS_PSWD)@localhost:9200/dedupe/_mappings \
+	| jq
+
 # https://opensearch.org/docs/latest/ml-commons-plugin/pretrained-models/
 # step 1: local-config-cluster-settings
 # step 2: local-config-model-group
@@ -36,7 +57,7 @@ local-server:
 
 local-config-cluster-settings:
 	cat database/opensearch/cluster-settings.json | \
-		curl -k \
+		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
 		https://admin:$(OS_PSWD)@localhost:9200/_cluster/settings \
@@ -46,7 +67,7 @@ local-config-cluster-settings:
 
 local-config-model-group:
 	cat database/opensearch/local-model-group.json | \
-		curl -k \
+		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
 		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/model_groups/_register \
@@ -56,16 +77,26 @@ local-config-model-group:
 
 local-config-register-model:
 	cat database/opensearch/register-model.json | \
-		curl -k \
+		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
 		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/models/_register \
 		-d @-
 
+# To do: Write / insert model_id...
+
+local-config-deploy-model:
+	cat database/opensearch/register-model.json | \
+		curl -k -s \
+		-H 'Content-Type: application/json' \
+		-X POST \
+		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/models/$(MODEL_ID)/_deploy \
+		-d @-
+
 # To do: Extract model_id...
 
 local-task-status:
-	curl -k \
+	curl -k -s \
 	-H 'Content-Type: application/json' \
 	-X GET \
 	https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/tasks/$(TASKID) \
@@ -73,7 +104,7 @@ local-task-status:
 
 local-config-pipeline:
 	cat database/opensearch/dedupe-ingest-pipeline.json | \
-		curl -k \
+		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
 		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline \
@@ -81,7 +112,7 @@ local-config-pipeline:
 
 local-config-index:
 	cat database/opensearch/dedupe-index.json | \
-	curl -k \
+	curl -k -s \
 		-H 'Content-type:application/json' \
 		-XPUT \
 		https://admin:$(OS_PSWD)@localhost:9200/dedupe \

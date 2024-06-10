@@ -155,6 +155,10 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 
 func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, metadata map[string]string) error {
 
+	logger := slog.Default()
+	logger = logger.With("index", db.index)
+	logger = logger.With("id", id)
+
 	doc_id := id
 
 	doc := opensearchDocument{
@@ -166,6 +170,7 @@ func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, m
 	enc_doc, err := json.Marshal(doc)
 
 	if err != nil {
+		logger.Error("Failed to marshal record", "error", err)
 		return err
 	}
 
@@ -186,12 +191,14 @@ func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, m
 		rsp, err := req.Do(ctx, db.client)
 
 		if err != nil {
+			logger.Error("Failed to index record", "status", rsp.Status)
 			return fmt.Errorf("Error getting response: %w", err)
 		}
 
 		defer rsp.Body.Close()
 
 		if rsp.IsError() {
+
 			return fmt.Errorf("Failed to index document, %v", rsp.Status())
 		}
 
