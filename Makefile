@@ -9,7 +9,7 @@ OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 # And then:
 # curl -v -k https://admin:$(OS_PSWD)@localhost:9200/
 
-opensearch-local:
+local-server:
 	docker run \
 		-it \
 		-p 9200:9200 \
@@ -18,3 +18,23 @@ opensearch-local:
 		-e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=$(OS_PSWD)" \
 		-v opensearch-data1:/usr/local/data/opensearch \
 		opensearchproject/opensearch:latest
+
+local-config:
+	@make local-config-pipeline
+	@make local-config-index
+
+local-config-pipeline:
+	cat database/opensearch/dedupe-ingest-pipeline.json | \
+		curl -k \
+		-H 'Content-Type: application/json' \
+		-X PUT \
+		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline \
+		-d @-
+
+local-config-index:
+	cat database/opensearch/dedupe-index.json | \
+	curl -k \
+		-H 'Content-type:application/json' \
+		-XPUT \
+		https://admin:$(OS_PSWD)@localhost:9200/dedupe \
+		-d @-
