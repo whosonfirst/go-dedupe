@@ -38,7 +38,9 @@ func main() {
 	// var bucket_uri string
 	// var is_bzipped bool
 
-	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=a8-aBJABf__qJekL_zJC&bulk-index=false", "...")
+
+	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
 	flag.StringVar(&parser_uri, "parser-uri", "alltheplaces://", "...")
 	// flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
@@ -72,6 +74,8 @@ func main() {
 		}
 	*/
 
+	total_matches := 0
+
 	for _, path := range uris {
 
 		r, err := os.Open(path)
@@ -93,8 +97,11 @@ func main() {
 		fc, err := geojson.UnmarshalFeatureCollection(body)
 
 		if err != nil {
-			log.Fatalf("Failed to unmarshal %s, %v", path, err)
+			slog.Warn("Failed to unmarshal feature collection", "path", path, "error", err)
+			continue
 		}
+
+		matches := 0
 
 		for idx, f := range fc.Features {
 
@@ -107,22 +114,34 @@ func main() {
 			c, err := prsr.Parse(ctx, f_body)
 
 			if err != nil {
-				log.Fatalf("Failed to parse feature at offset %d for %s, %v", idx, path, err)
+				slog.Warn("Failed to parse feature", "path", path, "offset", idx, "error", err)
+				// log.Printf("Failed to parse feature at offset %d for %s, %v", idx, path, err)
+				continue
 			}
 
-			results, err := db.Query(ctx, c.Content())
+			results, err := db.Query(ctx, c.Content(), c.Metadata())
 
 			if err != nil {
-				log.Fatalf("Failed to query for feature at offset %d for %s: %s, %v", idx, path, c.Content, err)
+				// log.Fatalf("Failed to query for feature at offset %d for %s: %s, %v", idx, path, c.Content, err)
+				slog.Warn("Failed to query feature", "path", path, "offset", idx, "error", err)
+				continue
 			}
 
-			slog.Info("results", "path", path, "offset", idx, "query", c.Content, "results", len(results))
+			// slog.Info("results", "path", path, "offset", idx, "query", c.Content, "results", len(results))
 
 			for _, qr := range results {
 
-				log.Printf("[%s][%s] %0.6f %s %s\n", c.ID, c.Content, qr.Similarity, qr.ID, qr.Content)
+				if qr.Similarity >= 0.95 {
+					// log.Printf("[%s][%0.6f] %s\n", c.Content(), qr.Similarity, qr.Content)
+					slog.Info("Match", "similarity", qr.Similarity, "atp", c.Content(), "ov", qr.Content)
+					matches += 1
+					total_matches += 1
+					break
+				}
 			}
 		}
+
+		slog.Info("Matches", "path", path, "matches", matches, "total", total_matches)
 
 	}
 
