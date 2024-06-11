@@ -95,7 +95,7 @@ func main() {
 		}
 
 		monitor.Signal(ctx)
-		logger.Info("OK")
+		// logger.Info("OK")
 		return nil
 	}
 

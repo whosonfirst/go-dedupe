@@ -2,6 +2,7 @@ package database
 
 // https://opensearch.org/docs/latest/search-plugins/semantic-search/
 // https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
+// https://opensearch.org/docs/latest/search-plugins/knn/settings/
 
 // https://opensearch.org/docs/latest/search-plugins/knn/filter-search-knn/
 // https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
@@ -63,6 +64,8 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 
 	q := u.Query()
 
+	// START OF put all of this in the go-whosonfirst-opensearch package
+
 	dsn := q.Get("dsn")
 
 	if dsn == "" {
@@ -71,7 +74,9 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 
 	model := q.Get("model")
 
-	// START OF put all of this in the go-whosonfirst-opensearch package
+	if model == "" {
+		return nil, fmt.Errorf("Missing ?model= parameter")
+	}
 
 	os_client, err := client.NewClient(ctx, dsn)
 
@@ -177,6 +182,8 @@ func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, m
 		Metadata: metadata,
 	}
 
+	// START OF put all of this in the go-whosonfirst-opensearch package
+
 	enc_doc, err := json.Marshal(doc)
 
 	if err != nil {
@@ -246,6 +253,8 @@ func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, m
 		return fmt.Errorf("Failed to add bulk item for %s, %w", doc_id, err)
 	}
 
+	// END OF put all of this in the go-whosonfirst-opensearch package
+
 	return nil
 
 }
@@ -268,10 +277,10 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata m
 	if len(filters) > 0 {
 
 		str_filters := strings.Join(filters, ",")
-		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "k": 10, "filter": { "bool": { "must": %s } } } } } }`, text, db.model_id, str_filters)
+		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "filter": { "bool": { "must": %s } } } } } }`, text, db.model_id, str_filters)
 
 	} else {
-		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "k": 10 } } } }`, text, db.model_id)
+		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s" } } } }`, text, db.model_id)
 	}
 
 	req := &opensearchapi.SearchRequest{
@@ -324,10 +333,8 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata m
 		}
 
 		results[idx] = qr
-		// slog.Info("R", "index", idx, "score", score, "id", id, "content", content)
 	}
 
-	// slog.Info("Results", "body", string(body))
 	return results, nil
 }
 
