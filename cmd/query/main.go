@@ -11,8 +11,10 @@ import (
 func main() {
 
 	var database_uri string
+	var query string
 
 	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues-dedupe.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&query, "query", "", "...")
 
 	flag.Parse()
 
@@ -24,7 +26,7 @@ func main() {
 		log.Fatalf("Failed to create new database, %v", err)
 	}
 
-	rsp, err := db.Query(ctx, "Fuck off")
+	rsp, err := db.Query(ctx, query)
 
 	if err != nil {
 		log.Fatalf("Failed to query database, %v", err)

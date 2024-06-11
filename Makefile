@@ -7,10 +7,13 @@ URLESCAPE=$(shell which urlescape)
 # (That means you should change this.)
 OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 
+OS_MODEL=a8-aBJABf__qJekL_zJC
+OS_BULK=false
+
 OS_DSN="https://localhost:9200/dedupe?username=admin&password=$(OS_PSWD)&insecure=true&require-tls=true"
 ENC_OS_DSN=$(shell $(URLESCAPE) $(OS_DSN))
 
-OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&bulk-index=false
+OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&model=$(OS_MODEL)&bulk-index=$(OS_BULK)
 
 # https://opensearch.org/docs/latest/install-and-configure/install-opensearch/docker/
 #
@@ -26,6 +29,8 @@ local-server:
 		-e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=$(OS_PSWD)" \
 		-v opensearch-data1:/usr/local/data/opensearch \
 		opensearchproject/opensearch:latest
+
+# Quick and dirty targets for testing things
 
 local-aliases:
 	curl -k -s \
@@ -46,6 +51,13 @@ local-mappings:
 	-H 'Content-Type: application/json' \
 	-X GET \
 	https://admin:$(OS_PSWD)@localhost:9200/dedupe/_mappings \
+	| jq
+
+local-search:
+	curl -k -s \
+	-H 'Content-Type: application/json' \
+	-X GET \
+	https://admin:$(OS_PSWD)@localhost:9200/dedupe/_search \
 	| jq
 
 # https://opensearch.org/docs/latest/ml-commons-plugin/pretrained-models/
@@ -122,3 +134,8 @@ local-index-overture:
 	go run cmd/index-overture-places/main.go \
 		-database-uri "$(OS_DATABASE_URI)" \
 		$(DATA)
+
+local-query:
+	go run cmd/query/main.go \
+		-database-uri "$(OS_DATABASE_URI)" \
+		-query "$(QUERY)"

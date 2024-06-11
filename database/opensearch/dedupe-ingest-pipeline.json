@@ -3,7 +3,7 @@
   "processors": [
     {
       "text_embedding": {
-          "model_id": "0JFBBJAB-6HI7nfgd4Tz",
+          "model_id": "a8-aBJABf__qJekL_zJC",
         "field_map": {
           "content": "content_embedding"
         }

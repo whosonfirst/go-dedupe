@@ -19,6 +19,7 @@ import (
 	opensearch "github.com/opensearch-project/opensearch-go/v2"
 	opensearchapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-opensearch/client"
 )
 
@@ -62,6 +63,8 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Missing ?dsn= parameter")
 	}
 
+	model := q.Get("model")
+
 	// START OF put all of this in the go-whosonfirst-opensearch package
 
 	os_client, err := client.NewClient(ctx, dsn)
@@ -88,6 +91,7 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 	db := &OpensearchDatabase{
 		client:    os_client,
 		index:     os_index,
+		model_id:  model,
 		waitGroup: wg,
 	}
 
@@ -270,7 +274,27 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string) ([]*QueryR
 		return nil, err
 	}
 
-	slog.Info("Results", "body", string(body))
+	//
+
+	hits_r := gjson.GetBytes(body, "hits.hits")
+	count_hits := len(hits_r.Array())
+
+	slog.Info("COUNT", "hits", count_hits)
+
+	for idx, r := range hits_r.Array() {
+
+		score_rsp := r.Get("_score")
+		score := score_rsp.Float()
+
+		src := r.Get("_source")
+
+		id := src.Get("id")
+		content := src.Get("content")
+
+		slog.Info("R", "index", idx, "score", score, "id", id, "content", content)
+	}
+
+	// slog.Info("Results", "body", string(body))
 
 	results := make([]*QueryResult, 0)
 	return results, nil
