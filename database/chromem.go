@@ -77,7 +77,7 @@ func (db *ChromemDatabase) Add(ctx context.Context, id string, text string, meta
 	return db.collection.AddDocuments(ctx, docs, runtime.NumCPU())
 }
 
-func (db *ChromemDatabase) Query(ctx context.Context, text string) ([]*QueryResult, error) {
+func (db *ChromemDatabase) Query(ctx context.Context, text string, metadata map[string]string) ([]*QueryResult, error) {
 
 	rsp, err := db.collection.Query(ctx, text, db.foo, nil, nil)
 

@@ -24,7 +24,7 @@ func (c *Location) Content() string {
 	// structured data but "metadata" seems to be specific to philippgille/chromem-go
 	// so maybe not?
 
-	return fmt.Sprintf("A venue named %s, contained by the geohash %s, located at %s", c.Name, c.Geohash(), c.Address)
+	return fmt.Sprintf("%s, %s", c.Name, c.Address)
 }
 
 func (c *Location) Metadata() map[string]string {

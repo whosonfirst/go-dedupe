@@ -3,6 +3,12 @@ package database
 // https://opensearch.org/docs/latest/search-plugins/semantic-search/
 // https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
 
+// https://opensearch.org/docs/latest/search-plugins/knn/filter-search-knn/
+// https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
+
+// https://junming-chen.medium.com/using-elasticsearch-as-a-vector-database-dive-into-dense-vector-and-script-score-198e2eb807d6
+// https://www.elastic.co/search-labs/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
+
 import (
 	"bytes"
 	"context"
@@ -244,9 +250,29 @@ func (db *OpensearchDatabase) Add(ctx context.Context, id string, text string, m
 
 }
 
-func (db *OpensearchDatabase) Query(ctx context.Context, text string) ([]*QueryResult, error) {
+func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata map[string]string) ([]*QueryResult, error) {
 
-	q := fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "k": 100 } } } }`, text, db.model_id)
+	filters := make([]string, 0)
+
+	if metadata != nil {
+
+		for k, v := range metadata {
+			q := fmt.Sprintf(`{ "term": { "metadata.%s": "%s" } }`, k, v)
+			filters = append(filters, q)
+		}
+	}
+
+	// https://opensearch.org/docs/latest/search-plugins/neural-search-tutorial/
+	var q string
+
+	if len(filters) > 0 {
+
+		str_filters := strings.Join(filters, ",")
+		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "k": 10, "filter": { "bool": { "must": %s } } } } } }`, text, db.model_id, str_filters)
+
+	} else {
+		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "k": 10 } } } }`, text, db.model_id)
+	}
 
 	req := &opensearchapi.SearchRequest{
 		Body: strings.NewReader(q),
@@ -279,7 +305,7 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string) ([]*QueryR
 	hits_r := gjson.GetBytes(body, "hits.hits")
 	count_hits := len(hits_r.Array())
 
-	slog.Info("COUNT", "hits", count_hits)
+	results := make([]*QueryResult, count_hits)
 
 	for idx, r := range hits_r.Array() {
 
@@ -291,12 +317,17 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string) ([]*QueryR
 		id := src.Get("id")
 		content := src.Get("content")
 
-		slog.Info("R", "index", idx, "score", score, "id", id, "content", content)
+		qr := &QueryResult{
+			ID:         id.String(),
+			Content:    content.String(),
+			Similarity: float32(score),
+		}
+
+		results[idx] = qr
+		// slog.Info("R", "index", idx, "score", score, "id", id, "content", content)
 	}
 
 	// slog.Info("Results", "body", string(body))
-
-	results := make([]*QueryResult, 0)
 	return results, nil
 }
 
@@ -304,36 +335,3 @@ func (db *OpensearchDatabase) Flush(ctx context.Context) error {
 	db.waitGroup.Wait()
 	return nil
 }
-
-/*
-
-[2024-06-10T23:02:35,762][WARN ][o.o.m.j.JvmGcMonitorService] [dd22e97b6dc8] [gc][2257] overhead, spent [1s] collecting in the last [1s]
-java.lang.OutOfMemoryError: Java heap space
-Dumping heap to data/java_pid43.hprof ...
-Heap dump file created [1339409158 bytes in 5.371 secs]
-[2024-06-10T23:02:41,864][WARN ][o.o.m.j.JvmGcMonitorService] [dd22e97b6dc8] [gc][2258] overhead, spent [3.7s] collecting in the last [6.1s]
-[2024-06-10T23:02:41,868][ERROR][o.o.b.OpenSearchUncaughtExceptionHandler] [dd22e97b6dc8] fatal error in thread [opensearch[dd22e97b6dc8][write][T#2]], exiting
-java.lang.OutOfMemoryError: Java heap space
-[2024-06-10T23:02:41,868][ERROR][o.o.b.OpenSearchUncaughtExceptionHandler] [dd22e97b6dc8] fatal error in thread [opensearch[dd22e97b6dc8][generic][T#1]], exiting
-java.lang.OutOfMemoryError: Java heap space
-fatal error in thread [opensearch[dd22e97b6dc8][generic][T#1]], exiting
-java.lang.OutOfMemoryError: Java heap space
-[2024-06-10T23:02:41,867][ERROR][o.o.b.OpenSearchUncaughtExceptionHandler] [dd22e97b6dc8] fatal error in thread [opensearch[dd22e97b6dc8][write][T#9]], exiting
-java.lang.OutOfMemoryError: Java heap space
-fatal error in thread [opensearch[dd22e97b6dc8][write][T#9]], exiting
-java.lang.OutOfMemoryError: Java heap space
-fatal error in thread [opensearch[dd22e97b6dc8][write][T#2]], exiting
-java.lang.OutOfMemoryError: Java heap space
-[2024-06-10T23:02:41,866][ERROR][o.o.b.OpenSearchUncaughtExceptionHandler] [dd22e97b6dc8] fatal error in thread [opensearch[dd22e97b6dc8][write][T#7]], exiting
-java.lang.OutOfMemoryError: Java heap space
-	at java.base/java.util.concurrent.ThreadPoolExecutor.addWorker(ThreadPoolExecutor.java:928) ~[?:?]
-	at java.base/java.util.concurrent.ThreadPoolExecutor.processWorkerExit(ThreadPoolExecutor.java:1021) ~[?:?]
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1158) ~[?:?]
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
-	at java.base/java.lang.Thread.runWith(Thread.java:1596) ~[?:?]
-	at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
-fatal error in thread [opensearch[dd22e97b6dc8][write][T#7]], exiting
-[2024-06-10T23:02:41,868][ERROR][o.o.i.e.Engine           ] [dd22e97b6dc8] [dedupe][0] already closed by tragic event on the index writer
-java.lang.OutOfMemoryError: Java heap space
-
-*/
