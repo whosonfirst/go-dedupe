@@ -12,14 +12,7 @@ import (
 
 type Database interface {
 	Add(context.Context, string, string, map[string]string) error
-
-	// https://pkg.go.dev/github.com/philippgille/chromem-go#Collection.Add
-	// AddEmbeddings(context.Context, string, []float64, map[string]string) error
-
 	Query(context.Context, string, map[string]string) ([]*QueryResult, error)
-
-	// QueryEmbeddings(context.Context, []float64) ([]*QueryResult, error)
-
 	Flush(context.Context) error
 }
 

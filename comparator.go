@@ -11,6 +11,7 @@ import (
 	"github.com/whosonfirst/go-dedupe/parser"
 )
 
+// Compatator compares arbirtrary locations against a database of existing records.
 type Comparator struct {
 	database   database.Database
 	parser     parser.Parser
@@ -18,6 +19,9 @@ type Comparator struct {
 	csv_writer *csvdict.Writer
 }
 
+// NewComparator returns a new `Comparator` instance. 'db' is the `database.Database` instance of existing records to compare
+// locations against, 'prsr' is the `parser.Parser` instance to convert a location in to a `parser.Location` instance and `wr'
+// is a `io.Writer` instance where match results will be written.
 func NewComparator(ctx context.Context, db database.Database, prsr parser.Parser, wr io.Writer) (*Comparator, error) {
 
 	c := &Comparator{
@@ -29,6 +33,9 @@ func NewComparator(ctx context.Context, db database.Database, prsr parser.Parser
 	return c, nil
 }
 
+// Compare compares 'body' against the database of existing records (contained by 'c'). Matches are written as CSV rows with the
+// following keys: location (the location being compared), source (the matching source data that a location is compared against),
+// similarity.
 func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64) (bool, error) {
 
 	is_match := false

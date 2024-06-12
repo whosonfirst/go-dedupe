@@ -9,6 +9,7 @@ import (
 
 type Location struct {
 	ID       string            `json:"id"`
+	Source   string            `json:"source"`
 	Name     string            `json:"name"`
 	Address  string            `json:"address"`
 	Centroid *orb.Point        `json:"centroid"`
@@ -16,7 +17,7 @@ type Location struct {
 }
 
 func (c *Location) String() string {
-	return fmt.Sprintf("[%s] %s", c.ID, c.Content())
+	return fmt.Sprintf("%s, %s", c.Name, c.Address)
 }
 
 func (c *Location) Content() string {
