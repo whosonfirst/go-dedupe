@@ -95,6 +95,7 @@ func main() {
 			return fmt.Errorf("Failed to parse body, %w", err)
 		}
 
+		logger = logger.With("id", loc.ID)		
 		logger = logger.With("location", loc)
 
 		err = db.Add(ctx, loc)

@@ -1,36 +1,23 @@
 {
-  "settings": {
-    "index.knn": true,
-    "default_pipeline": "dedupe-ingest-pipeline"
+    "settings": {
+      "default_pipeline": "dedupe-ingest-pipeline-sparse"
   },
-  "mappings": {
-    "properties": {
-      "id": {
-        "type": "text"
+    "mappings": {
+      "properties": {
+	"id": {
+          "type": "text"
       },
-      "name": {
-        "type": "text"
+	"name": {
+          "type": "text"
       },
-      "address": {
-        "type": "text"
+	"address": {
+          "type": "text"
       },		
-      "name_embedding": {
-        "type": "knn_vector",
-        "dimension": 768,
-        "method": {
-          "engine": "lucene",
-          "space_type": "l2",
-          "name": "hnsw",
-          "parameters": {}
+	"name_embedding": {
+	    "type": "rank_features"
         },
-      "address_embedding": {
-        "type": "knn_vector",
-        "dimension": 768,
-        "method": {
-          "engine": "lucene",
-          "space_type": "l2",
-          "name": "hnsw",
-          "parameters": {}
+	"address_embedding": {
+	    "type": "rank_features"
         }	  
       }
     }

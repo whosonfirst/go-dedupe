@@ -61,11 +61,15 @@ local-search:
 	| jq
 
 # https://opensearch.org/docs/latest/ml-commons-plugin/pretrained-models/
+# https://opensearch.org/blog/improving-document-retrieval-with-sparse-semantic-encoders/
+
 # step 1: local-config-cluster-settings
-# step 2: local-config-model-group
 # step 3: local-config-register-model
-# step 4: local-config-pipeline
-# step 5: local-config-index
+# step 4: local-task-status TASK=<task-id> and record <model-id>
+# step 5: write <model-id> to static/opensearch/dedupe-ingest-pipeline-sparse.json 
+# step 6: local-config-pipeline
+# step 7: local-config-index
+# step 8: local-index-overture DATA=<path>
 
 local-config-cluster-settings:
 	cat static/opensearch/cluster-settings.json | \
@@ -75,34 +79,13 @@ local-config-cluster-settings:
 		https://admin:$(OS_PSWD)@localhost:9200/_cluster/settings \
 		-d @-
 
-# To do: Extract model_group...
-
-local-config-model-group:
-	cat static/opensearch/local-model-group.json | \
-		curl -k -s \
-		-H 'Content-Type: application/json' \
-		-X POST \
-		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/model_groups/_register \
-		-d @-
-
-# To do: Write / insert model_group...
 
 local-config-register-model:
-	cat static/opensearch/register-model.json | \
+	cat static/opensearch/register-model-sparse.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
-		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/models/_register \
-		-d @-
-
-# To do: Write / insert model_id...
-
-local-config-deploy-model:
-	cat static/opensearch/register-model.json | \
-		curl -k -s \
-		-H 'Content-Type: application/json' \
-		-X POST \
-		https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/models/$(MODEL_ID)/_deploy \
+		'https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/models/_register?deploy=true' \
 		-d @-
 
 # To do: Extract model_id...
@@ -111,16 +94,24 @@ local-task-status:
 	curl -k -s \
 	-H 'Content-Type: application/json' \
 	-X GET \
-	https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/tasks/$(TASKID) \
+	https://admin:$(OS_PSWD)@localhost:9200/_plugins/_ml/tasks/$(TASK) \
 	| jq
 
+# To do: Write / insert model_id..
+
 local-config-pipeline:
-	cat static/opensearch/dedupe-ingest-pipeline.json | \
+	cat static/opensearch/dedupe-ingest-pipeline-sparse.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
-		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline \
+		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline-sparse \
 		-d @-
+
+local-remove-index:
+	curl -k -s \
+		-H 'Content-type:application/json' \
+		-XDELETE \
+		https://admin:$(OS_PSWD)@localhost:9200/dedupe
 
 local-config-index:
 	cat static/opensearch/dedupe-index.json | \
@@ -130,9 +121,10 @@ local-config-index:
 		https://admin:$(OS_PSWD)@localhost:9200/dedupe \
 		-d @-
 
+# -start-after 2518764 \
+
 local-index-overture:
 	go run cmd/index-overture-places/main.go \
-		-start-after 2518764 \
 		-database-uri "$(OS_DATABASE_URI)" \
 		$(DATA)
 

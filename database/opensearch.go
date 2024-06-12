@@ -35,10 +35,10 @@ import (
 )
 
 type opensearchDocument struct {
-	ID       string
-	Name     string
-	Address  string
-	Metadata map[string]string
+	ID       string	`json:"id"`
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 type OpensearchDatabase struct {
@@ -214,15 +214,15 @@ func (db *OpensearchDatabase) Add(ctx context.Context, loc *location.Location) e
 		rsp, err := req.Do(ctx, db.client)
 
 		if err != nil {
-			logger.Error("Failed to index record", "status", rsp.Status)
+			logger.Error("Failed to execute indexing request", "status", rsp.Status)
 			return fmt.Errorf("Error getting response: %w", err)
 		}
 
 		defer rsp.Body.Close()
 
 		if rsp.IsError() {
-
-			return fmt.Errorf("Failed to index document, %v", rsp.Status())
+			body, _ := io.ReadAll(rsp.Body)
+			return fmt.Errorf("Failed to index document, %v", rsp.Status(), "body", string(body))
 		}
 
 		return nil
