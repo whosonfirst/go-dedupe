@@ -9,14 +9,13 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
 	"os"
 
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-csvdict"
+	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
 	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
@@ -71,7 +70,13 @@ func main() {
 		}
 	*/
 
-	var csv_wr *csvdict.Writer
+	cmp, err := dedupe.NewComparator(ctx, db, prsr, os.Stdout)
+
+	if err != nil {
+		log.Fatalf("Failed to create new comparator, %v", err)
+	}
+
+	defer cmp.Flush()
 
 	total_matches := 0
 	total_features := 0
@@ -120,55 +125,16 @@ func main() {
 				continue
 			}
 
-			c, err := prsr.Parse(ctx, f_body)
+			is_match, err := cmp.Compare(ctx, f_body, threshold)
 
 			if err != nil {
-				logger.Warn("Failed to parse feature", "error", err)
+				slog.Warn("Failed to compare feature", "path", path, "error", err)
 				continue
 			}
 
-			results, err := db.Query(ctx, c.Content(), c.Metadata())
-
-			if err != nil {
-				logger.Warn("Failed to query feature", "error", err)
-				continue
-			}
-
-			for _, qr := range results {
-
-				if float64(qr.Similarity) >= threshold {
-
-					row := map[string]string{
-						"ovtr_id":    qr.ID,
-						"atp_id":     c.ID,
-						"similarity": fmt.Sprintf("%02f", qr.Similarity),
-					}
-
-					if csv_wr == nil {
-
-						fieldnames := make([]string, 0)
-
-						for k, _ := range row {
-							fieldnames = append(fieldnames, k)
-						}
-
-						wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
-
-						if err != nil {
-							log.Fatalf("Failed to create CSV writer, %w", err)
-						}
-
-						wr.WriteHeader()
-						csv_wr = wr
-					}
-
-					csv_wr.WriteRow(row)
-
-					logger.Info("Match", "similarity", qr.Similarity, "atp", c.Content(), "ov", qr.Content)
-					matches += 1
-					total_matches += 1
-					break
-				}
+			if is_match {
+				matches += 1
+				total_matches += 1
 			}
 		}
 
@@ -176,5 +142,4 @@ func main() {
 
 	}
 
-	csv_wr.Flush()
 }

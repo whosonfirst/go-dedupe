@@ -66,6 +66,8 @@ func main() {
 		log.Fatalf("Failed to create new comparator, %v", err)
 	}
 
+	defer cmp.Flush()
+
 	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
 		body, err := io.ReadAll(r)
@@ -74,11 +76,15 @@ func main() {
 			return fmt.Errorf("Failed to read %s, %v", path, err)
 		}
 
-		err = cmp.Compare(ctx, body, threshold)
+		is_match, err := cmp.Compare(ctx, body, threshold)
 
 		if err != nil {
 			slog.Warn("Failed to compare feature", "path", path, "error", err)
 			return nil
+		}
+
+		if is_match {
+			slog.Info("Match", "path", path)
 		}
 
 		return nil
