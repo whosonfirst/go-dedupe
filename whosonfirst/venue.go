@@ -47,18 +47,7 @@ func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parse
 		return nil, err
 	}
 
-	content := []string{
-		name,
-	}
-
 	addr_rsp := gjson.GetBytes(body, "properties.addr:full")
-
-	if addr_rsp.Exists() {
-
-		// Something something something libpostal...
-
-		content = append(content, addr_rsp.String())
-	}
 
 	metadata := make(map[string]string)
 
@@ -77,7 +66,7 @@ func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parse
 	c := &parser.Location{
 		ID:       c_id,
 		Name:     name,
-		Address:  "",
+		Address:  addr_rsp.String(),
 		Centroid: centroid,
 	}
 

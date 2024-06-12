@@ -18,7 +18,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/sfomuseum/go-csvdict"
+	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
@@ -31,6 +31,7 @@ func main() {
 	var database_uri string
 	var parser_uri string
 	var iterator_uri string
+	var threshold float64
 
 	flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=a8-aBJABf__qJekL_zJC&bulk-index=false", "...")
 
@@ -38,6 +39,7 @@ func main() {
 	flag.StringVar(&parser_uri, "parser-uri", "whosonfirstvenues://", "...")
 	flag.StringVar(&iterator_uri, "iterator-uri", "repo://", "...")
 
+	flag.Float64Var(&threshold, "threshold", 0.75, "...")
 	flag.Parse()
 
 	uris := flag.Args()
@@ -58,7 +60,11 @@ func main() {
 		log.Fatalf("Failed to create new parser, %v", err)
 	}
 
-	var csv_wr *csvdict.Writer
+	cmp, err := dedupe.NewComparator(ctx, db, prsr, os.Stdout)
+
+	if err != nil {
+		log.Fatalf("Failed to create new comparator, %v", err)
+	}
 
 	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
@@ -68,56 +74,11 @@ func main() {
 			return fmt.Errorf("Failed to read %s, %v", path, err)
 		}
 
-		loc, err := prsr.Parse(ctx, body)
+		err = cmp.Compare(ctx, body, threshold)
 
 		if err != nil {
-			slog.Warn("Failed to parse feature", "path", path, "error", err)
+			slog.Warn("Failed to compare feature", "path", path, "error", err)
 			return nil
-		}
-
-		results, err := db.Query(ctx, loc.Content(), loc.Metadata())
-
-		if err != nil {
-			slog.Warn("Failed to query feature", "path", path, "error", err)
-			return nil
-		}
-
-		for _, qr := range results {
-
-			// slog.Info("Match", "similarity", qr.Similarity, "wof", loc.Content(), "ov", qr.Content)
-			// continue
-
-			if qr.Similarity >= 0.75 {
-				slog.Info("Match", "similarity", qr.Similarity, "atp", loc.Content(), "ov", qr.Content)
-
-				row := map[string]string{
-					"location":   qr.ID,
-					"source":     loc.ID,
-					"similarity": fmt.Sprintf("%02f", qr.Similarity),
-				}
-
-				if csv_wr == nil {
-
-					fieldnames := make([]string, 0)
-
-					for k, _ := range row {
-						fieldnames = append(fieldnames, k)
-					}
-
-					wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
-
-					if err != nil {
-						log.Fatalf("Failed to create CSV writer, %w", err)
-					}
-
-					wr.WriteHeader()
-					csv_wr = wr
-				}
-
-				csv_wr.WriteRow(row)
-
-				break
-			}
 		}
 
 		return nil
