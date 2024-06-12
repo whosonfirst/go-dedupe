@@ -17,7 +17,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,8 +37,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-opensearch/client"
 )
 
-//go:embed opensearch_query.tpl
-var opensearch_query_t string
+//go:embed opensearch_*.tpl
+var opensearch_fs embed.FS
 
 type opensearchDocument struct {
 	ID       string            `json:"id"`
@@ -54,12 +54,13 @@ type opensearchQueryVars struct {
 
 type OpensearchDatabase struct {
 	Database
-	client         *opensearch.Client
-	index          string
-	indexer        opensearchutil.BulkIndexer
-	model_id       string
-	waitGroup      *sync.WaitGroup
-	query_template *template.Template
+	client          *opensearch.Client
+	index           string
+	indexer         opensearchutil.BulkIndexer
+	model_id        string
+	waitGroup       *sync.WaitGroup
+	query_templates *template.Template
+	query_label     string
 }
 
 func init() {
@@ -114,26 +115,35 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("dsn is missing ?index= parameter, '%s'", dsn)
 	}
 
-	t, err := template.New("opensearch").Parse(opensearch_query_t)
+	t := template.New("opensearch").Funcs(template.FuncMap{
+		"HasMetadata": func(m map[string]string) bool {
+			has_metadata := false
+			for range m {
+				has_metadata = true
+				break
+			}
+			return has_metadata
+		},
+	})
+
+	t, err = t.ParseFS(opensearch_fs, "*.tpl")
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse query template, %w", err)
+		return nil, fmt.Errorf("Failed to parse query templates, %w", err)
 	}
 
-	t = t.Lookup("opensearch_query")
-
-	if t == nil {
-		return nil, fmt.Errorf("Missing opensearch_query template")
-	}
+	// Read from query param...
+	query_label := "opensearch_query_neural_sparse"
 
 	wg := new(sync.WaitGroup)
 
 	db := &OpensearchDatabase{
-		client:         os_client,
-		index:          os_index,
-		model_id:       model,
-		query_template: t,
-		waitGroup:      wg,
+		client:          os_client,
+		index:           os_index,
+		model_id:        model,
+		query_templates: t,
+		query_label:     query_label,
+		waitGroup:       wg,
 	}
 
 	bulk_index := true
@@ -292,6 +302,12 @@ func (db *OpensearchDatabase) Add(ctx context.Context, loc *location.Location) e
 
 func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 
+	t := db.query_templates.Lookup(db.query_label)
+
+	if t == nil {
+		return nil, fmt.Errorf("Missing opensearch_query template")
+	}
+
 	vars := opensearchQueryVars{
 		Location: loc,
 		ModelId:  db.model_id,
@@ -300,13 +316,15 @@ func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location)
 	var buf bytes.Buffer
 	wr := bufio.NewWriter(&buf)
 
-	err := db.query_template.Execute(wr, vars)
+	err := t.Execute(wr, vars)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive query, %w", err)
 	}
 
 	wr.Flush()
+
+	slog.Info("Query", "q", buf.String())
 
 	body_r := bytes.NewReader(buf.Bytes())
 
@@ -339,7 +357,7 @@ func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location)
 		return nil, err
 	}
 
-	//
+	// slog.Info("DEBUG", "body", string(body))
 
 	hits_r := gjson.GetBytes(body, "hits.hits")
 	count_hits := len(hits_r.Array())

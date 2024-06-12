@@ -76,7 +76,7 @@ func main() {
 	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
-	max_workers := 10
+	max_workers := 20
 	throttle := make(chan bool, max_workers)
 
 	for i := 0; i < max_workers; i++ {
@@ -131,7 +131,7 @@ func main() {
 			}
 
 			monitor.Signal(ctx)
-			// logger.Info("OK")
+			logger.Info("OK")
 		}(path, rec)
 
 		return nil

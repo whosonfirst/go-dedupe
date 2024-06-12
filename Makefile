@@ -83,7 +83,7 @@ local-config-cluster-settings:
 
 
 local-config-register-model:
-	cat static/opensearch/register-model-sparse.json | \
+	cat static/opensearch/register-model-sparse-document-only.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \

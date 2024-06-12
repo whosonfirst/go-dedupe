@@ -1,25 +1,26 @@
 {
     "settings": {
-      "default_pipeline": "dedupe-ingest-pipeline-sparse"
-  },
+	"default_pipeline": "dedupe-ingest-pipeline-sparse"
+    },
     "mappings": {
-      "properties": {
-	"id": {
-          "type": "text"
-      },
-	"name": {
-          "type": "text"
-      },
-	"address": {
-          "type": "text"
-      },		
-	"name_embedding": {
-	    "type": "rank_features"
-        },
-	"address_embedding": {
-	    "type": "rank_features"
-        }	  
-      }
+	"properties": {
+	    "id": {
+		"type": "text"
+	    },
+	    "name": {
+		"type": "text",
+		"copy_to": "content"
+	    },
+	    "address": {
+		"type": "text",
+		"copy_to": "content"
+	    },
+	    "content": {
+		"type": "text"
+	    },
+	    "content_embedding": {
+		"type": "rank_features"
+            }	  
+	}
     }
-  }
 }

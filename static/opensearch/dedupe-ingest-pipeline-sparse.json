@@ -3,20 +3,11 @@
      "processors" : [
          {
              "sparse_encoding": {
-                 "model_id": "p9ETDpABF8ecjpFHvW7l",
+                 "model_id": "MjGPDpABKek2bBDr-_YA",
                  "field_map": {
-                     "name": "name_embedding"
-                 }
-             }
-         },
-         {
-             "sparse_encoding": {
-                 "model_id": "p9ETDpABF8ecjpFHvW7l",
-                 "field_map": {
-                     "address": "address_embedding"
+                     "content": "content_embedding"
                  }
              }
          }
-	 
      ]
  }
