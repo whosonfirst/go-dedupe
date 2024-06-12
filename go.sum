@@ -164,8 +164,8 @@ github.com/opensearch-project/opensearch-go/v2 v2.3.0/go.mod h1:8LDr9FCgUTVoT+5E
 github.com/paulmach/orb v0.11.1 h1:3koVegMC4X/WeiXYz9iswopaTwMem53NzTJuTF20JzU=
 github.com/paulmach/orb v0.11.1/go.mod h1:5mULz1xQfs3bmQm63QEJA6lNGujuRafwA5S/EnuLaLU=
 github.com/paulmach/protoscan v0.2.1/go.mod h1:SpcSwydNLrxUGSDvXvO0P7g7AuhJ7lcKfDlhJCDw2gY=
-github.com/philippgille/chromem-go v0.6.0 h1:1f+xHu1FRow2O1Kgt5Gn9enioe5MJrUYO5YGOCGMEg4=
-github.com/philippgille/chromem-go v0.6.0/go.mod h1:hTd+wGEm/fFPQl7ilfCwQXkgEUxceYh86iIdoKMolPo=
+github.com/philippgille/chromem-go v0.0.0-20240602150210-34ba8797e203 h1:bSUw4aCuNxKER0mKhTh+7AcB9LqIpkwF+rI1d7wl7Pk=
+github.com/philippgille/chromem-go v0.0.0-20240602150210-34ba8797e203/go.mod h1:hTd+wGEm/fFPQl7ilfCwQXkgEUxceYh86iIdoKMolPo=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

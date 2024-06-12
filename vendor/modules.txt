@@ -171,7 +171,7 @@ github.com/opensearch-project/opensearch-go/v2/signer/awsv2
 ## explicit; go 1.15
 github.com/paulmach/orb
 github.com/paulmach/orb/geojson
-# github.com/philippgille/chromem-go v0.6.0
+# github.com/philippgille/chromem-go v0.6.0 => github.com/philippgille/chromem-go v0.0.0-20240602150210-34ba8797e203
 ## explicit; go 1.21
 github.com/philippgille/chromem-go
 # github.com/sfomuseum/go-csvdict v1.0.0

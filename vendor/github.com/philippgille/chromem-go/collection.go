@@ -63,7 +63,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 			Name:     name,
 			Metadata: m,
 		}
-		err := persist(metadataPath, pc, compress, "")
+		err := persistToFile(metadataPath, pc, compress, "")
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}
@@ -237,7 +237,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	// Persist the document
 	if c.persistDirectory != "" {
 		docPath := c.getDocPath(doc.ID)
-		err := persist(docPath, doc, c.compress, "")
+		err := persistToFile(docPath, doc, c.compress, "")
 		if err != nil {
 			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 		}
@@ -252,7 +252,6 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 //   - whereDocument: Conditional filtering on documents. Optional.
 //   - ids: The ids of the documents to delete. If empty, all documents are deleted.
 func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]string, ids ...string) error {
-
 	// must have at least one of where, whereDocument or ids
 	if len(where) == 0 && len(whereDocument) == 0 && len(ids) == 0 {
 		return fmt.Errorf("must have at least one of where, whereDocument or ids")
@@ -294,7 +293,7 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 		// Remove the document from disk
 		if c.persistDirectory != "" {
 			docPath := c.getDocPath(docID)
-			err := remove(docPath)
+			err := removeFile(docPath)
 			if err != nil {
 				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
 			}
@@ -302,7 +301,6 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 	}
 
 	return nil
-
 }
 
 // Count returns the number of documents in the collection.
@@ -329,7 +327,8 @@ type Result struct {
 //
 //   - queryText: The text to search for. Its embedding will be created using the
 //     collection's embedding function.
-//   - nResults: The number of results to return. Must be > 0.
+//   - nResults: The maximum number of results to return. Must be > 0.
+//     There can be fewer results if a filter is applied.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
@@ -349,7 +348,9 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 //
 //   - queryEmbedding: The embedding of the query to search for. It must be created
 //     with the same embedding model as the document embeddings in the collection.
-//   - nResults: The number of results to return. Must be > 0.
+//     The embedding will be normalized if it's not the case yet.
+//   - nResults: The maximum number of results to return. Must be > 0.
+//     There can be fewer results if a filter is applied.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
@@ -384,14 +385,32 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 		return nil, nil
 	}
 
+	// Normalize embedding if not the case yet. We only support cosine similarity
+	// for now and all documents were already normalized when added to the collection.
+	if !isNormalized(queryEmbedding) {
+		queryEmbedding = normalizeVector(queryEmbedding)
+	}
+
+	// If the filtering already reduced the number of documents to fewer than nResults,
+	// we only need to find the most similar docs among the filtered ones.
+	resLen := nResults
+	if len(filteredDocs) < nResults {
+		resLen = len(filteredDocs)
+	}
+
 	// For the remaining documents, get the most similar docs.
-	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, filteredDocs, nResults)
+	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, filteredDocs, resLen)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get most similar docs: %w", err)
 	}
 
-	res := make([]Result, 0, nResults)
-	for i := 0; i < nResults; i++ {
+	// As long as we don't filter by threshold, resLen should match len(nMaxDocs).
+	if resLen != len(nMaxDocs) {
+		return nil, fmt.Errorf("internal error: expected %d results, got %d", resLen, len(nMaxDocs))
+	}
+
+	res := make([]Result, 0, resLen)
+	for i := 0; i < resLen; i++ {
 		res = append(res, Result{
 			ID:         nMaxDocs[i].docID,
 			Metadata:   c.documents[nMaxDocs[i].docID].Metadata,
@@ -401,7 +420,6 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 		})
 	}
 
-	// Return the top nResults
 	return res, nil
 }
 

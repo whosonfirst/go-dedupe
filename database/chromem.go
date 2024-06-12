@@ -106,3 +106,7 @@ func (db *ChromemDatabase) Query(ctx context.Context, text string, metadata map[
 func (db *ChromemDatabase) Flush(ctx context.Context) error {
 	return nil
 }
+
+func (db *ChromemDatabase) Close(ctx context.Context) error {
+	return nil
+}

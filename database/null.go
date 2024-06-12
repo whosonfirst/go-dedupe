@@ -33,3 +33,7 @@ func (db *NullDatabase) Query(ctx context.Context, text string, metadata map[str
 func (db *NullDatabase) Flush(ctx context.Context) error {
 	return nil
 }
+
+func (db *NullDatabase) Close(ctx context.Context) error {
+	return nil
+}

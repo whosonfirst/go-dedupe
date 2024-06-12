@@ -2,6 +2,9 @@ module github.com/whosonfirst/go-dedupe
 
 go 1.22.4
 
+// This fixes a problem where io.Readers are not closed which results in filehandle exhaustion
+replace github.com/philippgille/chromem-go v0.6.0 => github.com/philippgille/chromem-go v0.0.0-20240602150210-34ba8797e203
+
 require (
 	github.com/aaronland/go-jsonl v0.0.20
 	github.com/aaronland/go-roster v1.0.0

@@ -348,3 +348,8 @@ func (db *OpensearchDatabase) Flush(ctx context.Context) error {
 	db.waitGroup.Wait()
 	return nil
 }
+
+func (db *OpensearchDatabase) Close(ctx context.Context) error {
+	return nil
+}
+
