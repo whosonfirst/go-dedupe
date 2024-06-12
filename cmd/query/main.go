@@ -7,17 +7,20 @@ import (
 
 	"github.com/sfomuseum/go-flags/multi"
 	"github.com/whosonfirst/go-dedupe/database"
+	"github.com/whosonfirst/go-dedupe/location"
 )
 
 func main() {
 
 	var database_uri string
-	var query string
+	var name string
+	var address string
 
 	var kv_pairs multi.KeyValueString
 
 	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues-dedupe.db?model=mxbai-embed-large", "...")
-	flag.StringVar(&query, "query", "", "...")
+	flag.StringVar(&name, "name", "", "...")
+	flag.StringVar(&address, "address", "", "...")
 	flag.Var(&kv_pairs, "metadata", "...")
 
 	flag.Parse()
@@ -30,13 +33,23 @@ func main() {
 		log.Fatalf("Failed to create new database, %v", err)
 	}
 
-	metadata := make(map[string]string, 0)
-
-	for _, kv := range kv_pairs {
-		metadata[kv.Key()] = kv.Value().(string)
+	loc := &location.Location{
+		Name:    name,
+		Address: address,
 	}
 
-	rsp, err := db.Query(ctx, query, metadata)
+	if len(kv_pairs) > 0 {
+
+		metadata := make(map[string]string, 0)
+
+		for _, kv := range kv_pairs {
+			metadata[kv.Key()] = kv.Value().(string)
+		}
+
+		loc.Custom = metadata
+	}
+
+	rsp, err := db.Query(ctx, loc)
 
 	if err != nil {
 		log.Fatalf("Failed to query database, %v", err)

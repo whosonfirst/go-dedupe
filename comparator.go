@@ -46,7 +46,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 		return is_match, fmt.Errorf("Failed to parse feature, %w", err)
 	}
 
-	results, err := c.database.Query(ctx, loc.String(), loc.Metadata())
+	results, err := c.database.Query(ctx, loc)
 
 	if err != nil {
 		return is_match, fmt.Errorf("Failed to query feature, %w", err)

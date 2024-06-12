@@ -79,9 +79,9 @@ func (db *ChromemDatabase) Add(ctx context.Context, loc *location.Location) erro
 	return db.collection.AddDocuments(ctx, docs, runtime.NumCPU())
 }
 
-func (db *ChromemDatabase) Query(ctx context.Context, text string, metadata map[string]string) ([]*QueryResult, error) {
+func (db *ChromemDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 
-	rsp, err := db.collection.Query(ctx, text, db.foo, nil, nil)
+	rsp, err := db.collection.Query(ctx, loc.String(), db.foo, nil, nil)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query, %w", err)

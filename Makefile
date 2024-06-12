@@ -7,7 +7,9 @@ URLESCAPE=$(shell which urlescape)
 # (That means you should change this.)
 OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 
-OS_MODEL=a8-aBJABf__qJekL_zJC
+OS_MODEL=model
+
+# If true this tends to trigger Java heap memory errors for OS run inside a Docker container
 OS_BULK=false
 
 OS_DSN="https://localhost:9200/dedupe?username=admin&password=$(OS_PSWD)&insecure=true&require-tls=true"
@@ -131,4 +133,5 @@ local-index-overture:
 local-query:
 	go run cmd/query/main.go \
 		-database-uri "$(OS_DATABASE_URI)" \
-		-query "$(QUERY)"
+		-name "$(NAME)" \
+		-address "$(ADDRESS)"

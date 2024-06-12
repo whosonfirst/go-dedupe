@@ -25,7 +25,7 @@ func (db *NullDatabase) Add(ctx context.Context, loc *location.Location) error {
 	return nil
 }
 
-func (db *NullDatabase) Query(ctx context.Context, text string, metadata map[string]string) ([]*QueryResult, error) {
+func (db *NullDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 	results := make([]*QueryResult, 0)
 	return results, nil
 }

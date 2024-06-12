@@ -5,10 +5,11 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
+	_ "fmt"
 	"log"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
@@ -75,6 +76,15 @@ func main() {
 	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
+	max_workers := 10
+	throttle := make(chan bool, max_workers)
+
+	for i := 0; i < max_workers; i++ {
+		throttle <- true
+	}
+
+	wg := new(sync.WaitGroup)
+
 	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
 		if start_after > 0 && rec.LineNumber < start_after {
@@ -82,31 +92,48 @@ func main() {
 			return nil
 		}
 
-		logger := slog.Default()
-		logger = logger.With("path", path)
-		logger = logger.With("line number", rec.LineNumber)
+		<-throttle
 
-		loc, err := prsr.Parse(ctx, rec.Body)
+		wg.Add(1)
 
-		if dedupe.IsInvalidRecordError(err) {
-			logger.Warn("Invalid record")
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("Failed to parse body, %w", err)
-		}
+		go func(path string, rec *walk.WalkRecord) {
 
-		logger = logger.With("id", loc.ID)		
-		logger = logger.With("location", loc)
+			logger := slog.Default()
+			logger = logger.With("path", path)
+			logger = logger.With("line number", rec.LineNumber)
 
-		err = db.Add(ctx, loc)
+			defer func() {
+				wg.Done()
+				throttle <- true
+				// logger.Info("Done")
+			}()
 
-		if err != nil {
-			logger.Error("Failed to add record", "error", err)
-			return err
-		}
+			loc, err := prsr.Parse(ctx, rec.Body)
 
-		monitor.Signal(ctx)
-		// logger.Info("OK")
+			if dedupe.IsInvalidRecordError(err) {
+				logger.Warn("Invalid record")
+				return
+			} else if err != nil {
+				logger.Error("Failed to parse record", "error", err)
+				return
+				// return fmt.Errorf("Failed to parse body, %w", err)
+			}
+
+			logger = logger.With("id", loc.ID)
+			logger = logger.With("location", loc)
+
+			err = db.Add(ctx, loc)
+
+			if err != nil {
+				logger.Error("Failed to add record", "error", err)
+				return
+				// return err
+			}
+
+			monitor.Signal(ctx)
+			// logger.Info("OK")
+		}(path, rec)
+
 		return nil
 	}
 
@@ -121,6 +148,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to walk, %v", err)
 	}
+
+	wg.Wait()
 
 	err = db.Flush(ctx)
 

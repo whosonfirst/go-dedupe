@@ -47,7 +47,9 @@ func (loc *Location) Metadata() map[string]string {
 		m[k] = v
 	}
 
-	m["geohash"] = loc.Geohash()
+	if loc.Centroid != nil {
+		m["geohash"] = loc.Geohash()
+	}
 
 	// Something something libpostal parse c.Address... and add components as metadata?
 	return m

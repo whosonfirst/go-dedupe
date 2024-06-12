@@ -14,7 +14,7 @@ import (
 // Database defines an interface for adding and querying locations to be deduplicated.
 type Database interface {
 	Add(context.Context, *location.Location) error
-	Query(context.Context, string, map[string]string) ([]*QueryResult, error)
+	Query(context.Context, *location.Location) ([]*QueryResult, error)
 	Flush(context.Context) error
 	Close(context.Context) error
 }

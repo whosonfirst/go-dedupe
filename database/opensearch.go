@@ -14,8 +14,10 @@ package database
 // https://www.elastic.co/search-labs/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v2"
@@ -34,20 +37,29 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-opensearch/client"
 )
 
+//go:embed opensearch_query.tpl
+var opensearch_query_t string
+
 type opensearchDocument struct {
-	ID       string	`json:"id"`
-	Name     string `json:"name"`
-	Address  string `json:"address"`
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	Address  string            `json:"address"`
 	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+type opensearchQueryVars struct {
+	Location *location.Location
+	ModelId  string
 }
 
 type OpensearchDatabase struct {
 	Database
-	client    *opensearch.Client
-	index     string
-	indexer   opensearchutil.BulkIndexer
-	model_id  string
-	waitGroup *sync.WaitGroup
+	client         *opensearch.Client
+	index          string
+	indexer        opensearchutil.BulkIndexer
+	model_id       string
+	waitGroup      *sync.WaitGroup
+	query_template *template.Template
 }
 
 func init() {
@@ -102,13 +114,26 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("dsn is missing ?index= parameter, '%s'", dsn)
 	}
 
+	t, err := template.New("opensearch").Parse(opensearch_query_t)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse query template, %w", err)
+	}
+
+	t = t.Lookup("opensearch_query")
+
+	if t == nil {
+		return nil, fmt.Errorf("Missing opensearch_query template")
+	}
+
 	wg := new(sync.WaitGroup)
 
 	db := &OpensearchDatabase{
-		client:    os_client,
-		index:     os_index,
-		model_id:  model,
-		waitGroup: wg,
+		client:         os_client,
+		index:          os_index,
+		model_id:       model,
+		query_template: t,
+		waitGroup:      wg,
 	}
 
 	bulk_index := true
@@ -265,32 +290,28 @@ func (db *OpensearchDatabase) Add(ctx context.Context, loc *location.Location) e
 
 }
 
-func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata map[string]string) ([]*QueryResult, error) {
+func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 
-	filters := make([]string, 0)
-
-	if metadata != nil {
-
-		for k, v := range metadata {
-			q := fmt.Sprintf(`{ "term": { "metadata.%s": "%s" } }`, k, v)
-			filters = append(filters, q)
-		}
+	vars := opensearchQueryVars{
+		Location: loc,
+		ModelId:  db.model_id,
 	}
 
-	// https://opensearch.org/docs/latest/search-plugins/neural-search-tutorial/
-	var q string
+	var buf bytes.Buffer
+	wr := bufio.NewWriter(&buf)
 
-	if len(filters) > 0 {
+	err := db.query_template.Execute(wr, vars)
 
-		str_filters := strings.Join(filters, ",")
-		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s", "filter": { "bool": { "must": %s } } } } } }`, text, db.model_id, str_filters)
-
-	} else {
-		q = fmt.Sprintf(`{ "query": { "neural": { "content_embedding": { "query_text": "%s", "model_id": "%s" } } } }`, text, db.model_id)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive query, %w", err)
 	}
+
+	wr.Flush()
+
+	body_r := bytes.NewReader(buf.Bytes())
 
 	req := &opensearchapi.SearchRequest{
-		Body: strings.NewReader(q),
+		Body: body_r,
 		Index: []string{
 			db.index,
 		},
@@ -299,19 +320,22 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata m
 	rsp, err := req.Do(ctx, db.client)
 
 	if err != nil {
+		slog.Error("Query request failed", "error", err)
 		return nil, err
 	}
 
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != 200 {
-		slog.Error("Query failed", "status", rsp.StatusCode)
+		body, _ := io.ReadAll(rsp.Body)
+		slog.Error("Query execution failed", "status", rsp.StatusCode, "query", buf.String(), "response", string(body))
 		return nil, fmt.Errorf("Invalid status")
 	}
 
 	body, err := io.ReadAll(rsp.Body)
 
 	if err != nil {
+		slog.Error("Failed to read response body", "error", err)
 		return nil, err
 	}
 
@@ -329,12 +353,15 @@ func (db *OpensearchDatabase) Query(ctx context.Context, text string, metadata m
 
 		src := r.Get("_source")
 
-		id := src.Get("id")
-		content := src.Get("content")
+		id := src.Get("id").String()
+		name := src.Get("name").String()
+		address := src.Get("address").String()
+
+		content := fmt.Sprintf("%s %s", name, address)
 
 		qr := &QueryResult{
-			ID:         id.String(),
-			Content:    content.String(),
+			ID:         id,
+			Content:    content,
 			Similarity: float32(score),
 		}
 
