@@ -1,7 +1,7 @@
 {{ define "opensearch_query_neural_sparse" -}}
 {
     "query": {
-	    "neural_sparse": { "content_embedding": { "query_text": "{{ .Location.String }}", "model_id": "{{ .ModelId }}" } }
+	         "neural_sparse": { "embeddings": { "query_text": "{{ .Location.String }}", "model_id": "{{ .ModelId }}" } } 
     {{ if HasMetadata .Location.Metadata -}},
     	    "filter": {
 		"must": [

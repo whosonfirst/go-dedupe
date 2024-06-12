@@ -5,7 +5,8 @@
       "text_embedding": {
           "model_id": "a8-aBJABf__qJekL_zJC",
           "field_map": {
-              "content": "content_embedding"
+              "name": "embeddings",
+              "address": "embeddings"	      
           }
       }
     }

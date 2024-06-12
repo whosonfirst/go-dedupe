@@ -3,9 +3,10 @@
      "processors" : [
          {
              "sparse_encoding": {
-                 "model_id": "MjGPDpABKek2bBDr-_YA",
+                 "model_id": "TjykDpABwYedBCVrzvKf",
                  "field_map": {
-                     "content": "content_embedding"
+                     "name": "embeddings",
+                     "address": "embeddings"   
                  }
              }
          }

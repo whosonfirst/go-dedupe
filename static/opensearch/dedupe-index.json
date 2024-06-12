@@ -8,17 +8,12 @@
 		"type": "text"
 	    },
 	    "name": {
-		"type": "text",
-		"copy_to": "content"
-	    },
-	    "address": {
-		"type": "text",
-		"copy_to": "content"
-	    },
-	    "content": {
 		"type": "text"
 	    },
-	    "content_embedding": {
+	    "address": {
+		"type": "text"
+	    },
+	    "embeddings": {
 		"type": "rank_features"
             }	  
 	}
