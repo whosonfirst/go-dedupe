@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	"github.com/philippgille/chromem-go"
+	"github.com/whosonfirst/go-dedupe/location"
 )
 
 type ChromemDatabase struct {
@@ -59,16 +60,17 @@ func NewChromemDatabase(ctx context.Context, uri string) (Database, error) {
 	return db, nil
 }
 
-func (db *ChromemDatabase) Add(ctx context.Context, id string, text string, metadata map[string]string) error {
+func (db *ChromemDatabase) Add(ctx context.Context, loc *location.Location) error {
+
+	id := loc.ID
+	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
 
 	doc := chromem.Document{
 		ID:      id,
 		Content: text,
 	}
 
-	if metadata != nil {
-		doc.Metadata = metadata
-	}
+	doc.Metadata = loc.Metadata()
 
 	docs := []chromem.Document{
 		doc,

@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/aaronland/go-roster"
+	"github.com/whosonfirst/go-dedupe/location"
 )
 
 type Parser interface {
-	Parse(context.Context, []byte) (*Location, error)
+	Parse(context.Context, []byte) (*location.Location, error)
 }
 
 // ParserInitializationFunc is a function defined by individual parser package and used to create

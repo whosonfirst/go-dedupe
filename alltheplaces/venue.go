@@ -10,6 +10,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
+	"github.com/whosonfirst/go-dedupe/location"
 	"github.com/whosonfirst/go-dedupe/parser"
 )
 
@@ -45,7 +46,7 @@ func NewAllThePlacesVenueParser(ctx context.Context, uri string) (parser.Parser,
 	return p, nil
 }
 
-func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*parser.Location, error) {
+func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*location.Location, error) {
 
 	id_rsp := gjson.GetBytes(body, "id")
 
@@ -101,7 +102,7 @@ func (p *AllThePlacesVenueParser) Parse(ctx context.Context, body []byte) (*pars
 
 	c_id := dedupe.AllThePlacesId(id)
 
-	c := &parser.Location{
+	c := &location.Location{
 		ID:       c_id,
 		Name:     name,
 		Address:  addr,

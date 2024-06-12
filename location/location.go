@@ -1,4 +1,4 @@
-package parser
+package location
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 type Location struct {
 	ID       string            `json:"id"`
-	Source   string            `json:"source"`
 	Name     string            `json:"name"`
 	Address  string            `json:"address"`
 	Centroid *orb.Point        `json:"centroid"`
@@ -17,14 +16,6 @@ type Location struct {
 }
 
 func (c *Location) String() string {
-	return fmt.Sprintf("%s, %s", c.Name, c.Address)
-}
-
-func (c *Location) Content() string {
-	// Something something libpostal c.Address... or maybe just rely on metadata for
-	// structured data but "metadata" seems to be specific to philippgille/chromem-go
-	// so maybe not?
-
 	return fmt.Sprintf("%s, %s", c.Name, c.Address)
 }
 

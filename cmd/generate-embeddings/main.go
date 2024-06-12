@@ -92,22 +92,22 @@ func main() {
 
 	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
-		c, err := prsr.Parse(ctx, rec.Body)
+		loc, err := prsr.Parse(ctx, rec.Body)
 
 		if err != nil {
 			return fmt.Errorf("Failed to parse body, %w", err)
 		}
 
-		embeddings, err := embdr.Embeddings(ctx, c.Content())
+		embeddings, err := embdr.Embeddings(ctx, loc.String())
 
 		if err != nil {
 			return fmt.Errorf("Failed to derive embeddings for %s, %w", path, err)
 		}
 
 		r := Row{
-			ID:         c.ID,
-			Content:    c.Content(),
-			Metadata:   c.Metadata(),
+			ID:         loc.ID,
+			Content:    loc.String(),
+			Metadata:   loc.Metadata(),
 			Embeddings: embeddings,
 		}
 

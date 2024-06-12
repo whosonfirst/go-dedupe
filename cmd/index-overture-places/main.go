@@ -95,7 +95,7 @@ func main() {
 
 		logger = logger.With("location", loc)
 
-		err = db.Add(ctx, loc.ID, loc.Content(), loc.Metadata())
+		err = db.Add(ctx, loc)
 
 		if err != nil {
 			logger.Error("Failed to add record", "error", err)

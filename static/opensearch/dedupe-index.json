@@ -8,10 +8,13 @@
       "id": {
         "type": "text"
       },
-      "content": {
+      "name": {
         "type": "text"
-      },	
-      "content_embedding": {
+      },
+      "address": {
+        "type": "text"
+      },		
+      "name_embedding": {
         "type": "knn_vector",
         "dimension": 768,
         "method": {
@@ -19,7 +22,16 @@
           "space_type": "l2",
           "name": "hnsw",
           "parameters": {}
-        }
+        },
+      "address_embedding": {
+        "type": "knn_vector",
+        "dimension": 768,
+        "method": {
+          "engine": "lucene",
+          "space_type": "l2",
+          "name": "hnsw",
+          "parameters": {}
+        }	  
       }
     }
   }

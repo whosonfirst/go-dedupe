@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
+	"github.com/whosonfirst/go-dedupe/location"
 	"github.com/whosonfirst/go-dedupe/parser"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 )
@@ -33,7 +34,7 @@ func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (parser.Parser, 
 	return p, nil
 }
 
-func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parser.Location, error) {
+func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*location.Location, error) {
 
 	id, err := properties.Id(body)
 
@@ -63,7 +64,7 @@ func (p *WhosOnFirstVenueParser) Parse(ctx context.Context, body []byte) (*parse
 	str_id := strconv.FormatInt(id, 10)
 	c_id := dedupe.WhosOnFirstId(str_id)
 
-	c := &parser.Location{
+	c := &location.Location{
 		ID:       c_id,
 		Name:     name,
 		Address:  addr_rsp.String(),

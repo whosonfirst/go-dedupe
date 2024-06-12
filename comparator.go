@@ -46,7 +46,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 		return is_match, fmt.Errorf("Failed to parse feature, %w", err)
 	}
 
-	results, err := c.database.Query(ctx, loc.Content(), loc.Metadata())
+	results, err := c.database.Query(ctx, loc.String(), loc.Metadata())
 
 	if err != nil {
 		return is_match, fmt.Errorf("Failed to query feature, %w", err)
@@ -58,7 +58,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 		if float64(qr.Similarity) >= threshold {
 
-			slog.Info("Match", "similarity", qr.Similarity, "atp", loc.Content(), "ov", qr.Content)
+			slog.Info("Match", "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
 			is_match = true
 
 			row := map[string]string{

@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/aaronland/go-roster"
+	"github.com/whosonfirst/go-dedupe/location"
 )
 
 type Database interface {
-	Add(context.Context, string, string, map[string]string) error
+	Add(context.Context, *location.Location) error
 	Query(context.Context, string, map[string]string) ([]*QueryResult, error)
 	Flush(context.Context) error
 }

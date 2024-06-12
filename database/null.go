@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"github.com/whosonfirst/go-dedupe/location"
 )
 
 type NullDatabase struct{}
@@ -20,7 +21,7 @@ func NewNullDatabase(ctx context.Context, uri string) (Database, error) {
 	return db, nil
 }
 
-func (db *NullDatabase) Add(ctx context.Context, id string, text string, metadata map[string]string) error {
+func (db *NullDatabase) Add(ctx context.Context, loc *location.Location) error {
 	return nil
 }
 
