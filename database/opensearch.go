@@ -4,6 +4,9 @@ package database
 // https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
 // https://opensearch.org/docs/latest/search-plugins/knn/settings/
 
+// https://opensearch.org/blog/improving-document-retrieval-with-sparse-semantic-encoders/
+// https://opensearch.org/blog/A-deep-dive-into-faster-semantic-sparse-retrieval-in-OS-2.12/
+
 // https://opensearch.org/docs/latest/search-plugins/knn/filter-search-knn/
 // https://opensearch.org/docs/latest/field-types/supported-field-types/knn-vector/
 

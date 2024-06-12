@@ -11,6 +11,7 @@ require (
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
 	github.com/paulmach/orb v0.11.1
 	github.com/philippgille/chromem-go v0.6.0
+	github.com/sfomuseum/go-csvdict v1.0.0
 	github.com/sfomuseum/go-flags v0.10.0
 	github.com/sfomuseum/go-timings v1.2.1
 	github.com/tidwall/gjson v1.17.1

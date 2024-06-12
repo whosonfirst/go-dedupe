@@ -9,21 +9,18 @@ package main
 import (
 	"context"
 	"flag"
-	// "fmt"
+	"fmt"
 	"io"
 	"log"
 	"log/slog"
 	"os"
 
-	// "github.com/aaronland/go-jsonl/walk"
-	// "github.com/aaronland/gocloud-blob/bucket"
-	// "github.com/sfomuseum/go-timings"
+	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-csvdict"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
 	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
-	// "github.com/whosonfirst/go-overture/geojsonl"
-	"github.com/paulmach/orb/geojson"
 	_ "gocloud.dev/blob/fileblob"
 )
 
@@ -73,6 +70,8 @@ func main() {
 			log.Fatalf("Failed to open source bucket, %v", err)
 		}
 	*/
+
+	var csv_wr *csvdict.Writer
 
 	total_matches := 0
 	total_features := 0
@@ -138,6 +137,33 @@ func main() {
 			for _, qr := range results {
 
 				if float64(qr.Similarity) >= threshold {
+
+					row := map[string]string{
+						"ovtr_id":    qr.ID,
+						"atp_id":     c.ID,
+						"similarity": fmt.Sprintf("%02f", qr.Similarity),
+					}
+
+					if csv_wr == nil {
+
+						fieldnames := make([]string, 0)
+
+						for k, _ := range row {
+							fieldnames = append(fieldnames, k)
+						}
+
+						wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
+
+						if err != nil {
+							log.Fatalf("Failed to create CSV writer, %w", err)
+						}
+
+						wr.WriteHeader()
+						csv_wr = wr
+					}
+
+					csv_wr.WriteRow(row)
+
 					logger.Info("Match", "similarity", qr.Similarity, "atp", c.Content(), "ov", qr.Content)
 					matches += 1
 					total_matches += 1
@@ -150,4 +176,5 @@ func main() {
 
 	}
 
+	csv_wr.Flush()
 }

@@ -16,7 +16,9 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"os"
 
+	"github.com/sfomuseum/go-csvdict"
 	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
@@ -56,6 +58,8 @@ func main() {
 		log.Fatalf("Failed to create new parser, %v", err)
 	}
 
+	var csv_wr *csvdict.Writer
+
 	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
 		body, err := io.ReadAll(r)
@@ -85,6 +89,33 @@ func main() {
 
 			if qr.Similarity >= 0.75 {
 				slog.Info("Match", "similarity", qr.Similarity, "atp", loc.Content(), "ov", qr.Content)
+
+				row := map[string]string{
+					"location":   qr.ID,
+					"source":     loc.ID,
+					"similarity": fmt.Sprintf("%02f", qr.Similarity),
+				}
+
+				if csv_wr == nil {
+
+					fieldnames := make([]string, 0)
+
+					for k, _ := range row {
+						fieldnames = append(fieldnames, k)
+					}
+
+					wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
+
+					if err != nil {
+						log.Fatalf("Failed to create CSV writer, %w", err)
+					}
+
+					wr.WriteHeader()
+					csv_wr = wr
+				}
+
+				csv_wr.WriteRow(row)
+
 				break
 			}
 		}

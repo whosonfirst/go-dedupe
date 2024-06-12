@@ -68,7 +68,7 @@ local-search:
 # step 5: local-config-index
 
 local-config-cluster-settings:
-	cat database/opensearch/cluster-settings.json | \
+	cat static/opensearch/cluster-settings.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
@@ -78,7 +78,7 @@ local-config-cluster-settings:
 # To do: Extract model_group...
 
 local-config-model-group:
-	cat database/opensearch/local-model-group.json | \
+	cat static/opensearch/local-model-group.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
@@ -88,7 +88,7 @@ local-config-model-group:
 # To do: Write / insert model_group...
 
 local-config-register-model:
-	cat database/opensearch/register-model.json | \
+	cat static/opensearch/register-model.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
@@ -98,7 +98,7 @@ local-config-register-model:
 # To do: Write / insert model_id...
 
 local-config-deploy-model:
-	cat database/opensearch/register-model.json | \
+	cat static/opensearch/register-model.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
@@ -115,7 +115,7 @@ local-task-status:
 	| jq
 
 local-config-pipeline:
-	cat database/opensearch/dedupe-ingest-pipeline.json | \
+	cat static/opensearch/dedupe-ingest-pipeline.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
@@ -123,7 +123,7 @@ local-config-pipeline:
 		-d @-
 
 local-config-index:
-	cat database/opensearch/dedupe-index.json | \
+	cat static/opensearch/dedupe-index.json | \
 	curl -k -s \
 		-H 'Content-type:application/json' \
 		-XPUT \
