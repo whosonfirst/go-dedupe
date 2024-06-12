@@ -70,14 +70,21 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 					return fmt.Errorf("Failed to create CSV writer, %w", err)
 				}
 
-				// Error handling...
-				wr.WriteHeader()
+				err = wr.WriteHeader()
+
+				if err != nil {
+					return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+				}
 
 				c.csv_writer = wr
 			}
 
-			// Error handling...
-			c.csv_writer.WriteRow(row)
+			err = c.csv_writer.WriteRow(row)
+
+			if err != nil {
+				return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+			}
+			
 			break
 		}
 	}
