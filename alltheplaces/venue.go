@@ -16,7 +16,6 @@ import (
 
 type AllThePlacesVenueParser struct {
 	parser.Parser
-	precision uint
 	addr_keys []string
 }
 
@@ -39,7 +38,6 @@ func NewAllThePlacesVenueParser(ctx context.Context, uri string) (parser.Parser,
 	}
 
 	p := &AllThePlacesVenueParser{
-		precision: dedupe.DEFAULT_GEOHASH_PRECISION,
 		addr_keys: addr_keys,
 	}
 

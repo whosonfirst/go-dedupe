@@ -13,7 +13,6 @@ import (
 
 type WhosOnFirstVenueParser struct {
 	parser.Parser
-	precision uint
 }
 
 func init() {
@@ -27,9 +26,7 @@ func init() {
 
 func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (parser.Parser, error) {
 
-	p := &WhosOnFirstVenueParser{
-		precision: dedupe.DEFAULT_GEOHASH_PRECISION,
-	}
+	p := &WhosOnFirstVenueParser{}
 
 	return p, nil
 }

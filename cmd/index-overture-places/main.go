@@ -51,7 +51,7 @@ func main() {
 	}
 
 	defer db.Close(ctx)
-	
+
 	prsr, err := parser.NewParser(ctx, parser_uri)
 
 	if err != nil {

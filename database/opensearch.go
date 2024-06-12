@@ -352,4 +352,3 @@ func (db *OpensearchDatabase) Flush(ctx context.Context) error {
 func (db *OpensearchDatabase) Close(ctx context.Context) error {
 	return nil
 }
-

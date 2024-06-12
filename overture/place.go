@@ -15,7 +15,6 @@ import (
 
 type OverturePlaceParser struct {
 	parser.Parser
-	precision uint
 	addr_keys []string
 }
 
@@ -38,7 +37,6 @@ func NewOverturePlaceParser(ctx context.Context, uri string) (parser.Parser, err
 	}
 
 	p := &OverturePlaceParser{
-		precision: dedupe.DEFAULT_GEOHASH_PRECISION,
 		addr_keys: addr_keys,
 	}
 
