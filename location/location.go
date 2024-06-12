@@ -27,10 +27,12 @@ type Location struct {
 	Custom map[string]string `json:"custom,omitempty"`
 }
 
+// String returns the locations name and address as a comma-separated string.
 func (loc *Location) String() string {
 	return fmt.Sprintf("%s, %s", loc.Name, loc.Address)
 }
 
+// Metadata returns the union of automatically derived metadata properties (geohash) and any custom metadata properties.
 func (loc *Location) Metadata() map[string]string {
 
 	m := make(map[string]string)
@@ -51,16 +53,19 @@ func (loc *Location) Metadata() map[string]string {
 	return m
 }
 
+// Geohash returns the geohash with a precision of 5 for the location.
 func (loc *Location) Geohash() string {
 	lon := loc.Centroid[0]
 	lat := loc.Centroid[1]
 	return geohash.EncodeWithPrecision(lat, lon, 5)
 }
 
+// ReservedMetadataKeys returns the list of reserved metadata keys.
 func ReservedMetadataKeys() []string {
 	return reserved_metadata_keys
 }
 
+// IsReservedMetadataKeys returns a boolean indicating whether 'k' is reserved.
 func IsReservedMetadataKey(k string) bool {
 	return slices.Contains(reserved_metadata_keys, k)
 }
