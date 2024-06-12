@@ -8,6 +8,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
+// OllamaEmbedder implements the `Embedder` interface using an Ollama API endpoint to derive embeddings.
 type OllamaEmbedder struct {
 	Embedder
 	client *api.Client

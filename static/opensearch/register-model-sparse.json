@@ -1,0 +1,9 @@
+{
+     "name": "opensearch-neural-sparse-encoding",
+     "version": "1.0.0",
+     "description": "opensearch-neural-sparse-encoding",
+     "model_format": "TORCH_SCRIPT",
+     "function_name": "SPARSE_ENCODING",
+     "model_content_hash_value": "d1ebaa26615090bdb0195a62b180afd2a8524c68c5d406a11ad787267f515ea8",
+     "url": "https://artifacts.opensearch.org/models/ml-models/amazon/neural-sparse/opensearch-neural-sparse-encoding-v1/1.0.1/torch_script/neural-sparse_opensearch-neural-sparse-encoding-v1-1.0.1-torch_script.zip"
+ }

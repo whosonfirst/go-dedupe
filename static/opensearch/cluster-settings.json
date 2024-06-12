@@ -10,6 +10,7 @@
 	},
 	"plugins": {
 	    "ml_commons": {
+		"allow_registering_model_via_url": true,
 		"only_run_on_ml_node": "false",
 		"model_access_control_enabled": "true",
 		"native_memory_threshold": "99"

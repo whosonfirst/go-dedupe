@@ -1,0 +1,22 @@
+{
+     "description": "An example neural sparse encoding pipeline",
+     "processors" : [
+         {
+             "sparse_encoding": {
+                 "model_id": "<model_id>",
+                 "field_map": {
+                     "name": "name_embedding"
+                 }
+             }
+         },
+         {
+             "sparse_encoding": {
+                 "model_id": "<model_id>",
+                 "field_map": {
+                     "address": "address_embedding"
+                 }
+             }
+         }
+	 
+     ]
+ }

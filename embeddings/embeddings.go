@@ -12,7 +12,9 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
+// Embedder defines an interface for generating (vector) embeddings
 type Embedder interface {
+	// Embeddings returns the (vector) embeddings for a string.
 	Embeddings(context.Context, string) ([]float64, error)
 }
 
