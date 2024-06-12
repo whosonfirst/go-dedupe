@@ -3,9 +3,6 @@ package main
 /*
 
 [asc][asc@SD-931-4][11:05:22] /usr/local/whosonfirst/go-whosonfirst-dedupe                                                                                                                     > go run cmd/compare-alltheplaces/main.go /usr/local/data/alltheplaces/dunkin_us.geojson
-2024/06/09 11:05:23 INFO Create database
-2024/06/09 11:17:10 Failed to create new database, Failed to create database, couldn't read document: couldn't open file: open /usr/local/data/venues.db/bc318ecb/173de102.gob: too many open files
-exit status 1
 
 */
 
@@ -38,6 +35,8 @@ func main() {
 	// var bucket_uri string
 	// var is_bzipped bool
 
+	var threshold float64
+
 	flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=a8-aBJABf__qJekL_zJC&bulk-index=false", "...")
 
 	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
@@ -46,6 +45,7 @@ func main() {
 	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	// flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 
+	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 	flag.Parse()
 
 	uris := flag.Args()
@@ -75,6 +75,7 @@ func main() {
 	*/
 
 	total_matches := 0
+	total_features := 0
 
 	for _, path := range uris {
 
@@ -101,39 +102,43 @@ func main() {
 			continue
 		}
 
+		features := 0
 		matches := 0
 
 		for idx, f := range fc.Features {
 
+			features += 1
+			total_features += 1
+
+			logger := slog.Default()
+			logger = logger.With("path", path)
+			logger = logger.With("offset", idx)
+
 			f_body, err := f.MarshalJSON()
 
 			if err != nil {
-				log.Fatalf("Failed to marshal feature at offset %d for %s, %v", idx, path, err)
+				logger.Warn("Failed to marshal feature", "error", err)
+				continue
 			}
 
 			c, err := prsr.Parse(ctx, f_body)
 
 			if err != nil {
-				slog.Warn("Failed to parse feature", "path", path, "offset", idx, "error", err)
-				// log.Printf("Failed to parse feature at offset %d for %s, %v", idx, path, err)
+				logger.Warn("Failed to parse feature", "error", err)
 				continue
 			}
 
 			results, err := db.Query(ctx, c.Content(), c.Metadata())
 
 			if err != nil {
-				// log.Fatalf("Failed to query for feature at offset %d for %s: %s, %v", idx, path, c.Content, err)
-				slog.Warn("Failed to query feature", "path", path, "offset", idx, "error", err)
+				logger.Warn("Failed to query feature", "error", err)
 				continue
 			}
 
-			// slog.Info("results", "path", path, "offset", idx, "query", c.Content, "results", len(results))
-
 			for _, qr := range results {
 
-				if qr.Similarity >= 0.95 {
-					// log.Printf("[%s][%0.6f] %s\n", c.Content(), qr.Similarity, qr.Content)
-					slog.Info("Match", "similarity", qr.Similarity, "atp", c.Content(), "ov", qr.Content)
+				if float64(qr.Similarity) >= threshold {
+					logger.Info("Match", "similarity", qr.Similarity, "atp", c.Content(), "ov", qr.Content)
 					matches += 1
 					total_matches += 1
 					break
@@ -141,7 +146,7 @@ func main() {
 			}
 		}
 
-		slog.Info("Matches", "path", path, "matches", matches, "total", total_matches)
+		slog.Info("Matches", "path", path, "features", features, "matches", matches, "total features", total_features, "total matches", total_matches)
 
 	}
 

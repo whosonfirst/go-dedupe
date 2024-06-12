@@ -29,11 +29,14 @@ func main() {
 	var bucket_uri string
 	var is_bzipped bool
 
+	var start_after int
+
 	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
 	flag.StringVar(&parser_uri, "parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
+	flag.IntVar(&start_after, "start-after", 0, "...")
 
 	flag.Parse()
 
@@ -71,6 +74,11 @@ func main() {
 	defer monitor.Stop(ctx)
 
 	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
+
+		if start_after > 0 && rec.LineNumber < start_after {
+			monitor.Signal(ctx)
+			return nil
+		}
 
 		logger := slog.Default()
 		logger = logger.With("path", path)

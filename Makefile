@@ -132,6 +132,7 @@ local-config-index:
 
 local-index-overture:
 	go run cmd/index-overture-places/main.go \
+		-start-after 2518764 \
 		-database-uri "$(OS_DATABASE_URI)" \
 		$(DATA)
 
