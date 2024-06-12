@@ -50,6 +50,8 @@ func main() {
 		log.Fatalf("Failed to create new database, %v", err)
 	}
 
+	defer db.Close(ctx)
+	
 	prsr, err := parser.NewParser(ctx, parser_uri)
 
 	if err != nil {
@@ -117,5 +119,11 @@ func main() {
 
 	if err != nil {
 		log.Fatalf("Failed to walk, %v", err)
+	}
+
+	err = db.Flush(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to flush database, %v", err)
 	}
 }
