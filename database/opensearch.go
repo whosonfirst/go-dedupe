@@ -34,6 +34,13 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-opensearch/client"
 )
 
+type opensearchDocument struct {
+	ID       string
+	Name     string
+	Address  string
+	Metadata map[string]string
+}
+
 type OpensearchDatabase struct {
 	Database
 	client    *opensearch.Client
@@ -174,9 +181,16 @@ func (db *OpensearchDatabase) Add(ctx context.Context, loc *location.Location) e
 	logger = logger.With("index", db.index)
 	logger = logger.With("id", doc_id)
 
+	doc := opensearchDocument{
+		ID:       loc.ID,
+		Name:     loc.Name,
+		Address:  loc.Address,
+		Metadata: loc.Metadata(),
+	}
+
 	// START OF put all of this in the go-whosonfirst-opensearch package
 
-	enc_doc, err := json.Marshal(loc)
+	enc_doc, err := json.Marshal(doc)
 
 	if err != nil {
 		logger.Error("Failed to marshal record", "error", err)
