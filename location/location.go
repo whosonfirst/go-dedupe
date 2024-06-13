@@ -2,7 +2,7 @@ package location
 
 import (
 	"fmt"
-	"log/slog"
+	_ "log/slog"
 	"slices"
 
 	"github.com/mmcloughlin/geohash"
@@ -39,10 +39,12 @@ func (loc *Location) Metadata() map[string]string {
 
 	for k, v := range loc.Custom {
 
-		if IsReservedMetadataKey(k) {
-			slog.Warn("Location metadata contains reserved key, skipping", "location", loc.ID, "key", k)
-			continue
-		}
+		/*
+			if IsReservedMetadataKey(k) {
+				slog.Warn("Location metadata contains reserved key, skipping", "location", loc.ID, "key", k)
+				continue
+			}
+		*/
 
 		m[k] = v
 	}

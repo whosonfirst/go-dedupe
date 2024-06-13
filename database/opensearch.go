@@ -133,7 +133,7 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 	}
 
 	// Read from query param...
-	query_label := "opensearch_query_neural_sparse"
+	query_label := "opensearch_query_neural_text"
 	// query_label := "opensearch_query_simple"
 
 	wg := new(sync.WaitGroup)
@@ -325,7 +325,7 @@ func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location)
 
 	wr.Flush()
 
-	slog.Info("Query", "q", buf.String())
+	fmt.Println(buf.String())
 
 	body_r := bytes.NewReader(buf.Bytes())
 

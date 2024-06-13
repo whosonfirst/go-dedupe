@@ -68,7 +68,7 @@ local-search:
 # step 1: local-config-cluster-settings
 # step 3: local-config-register-model
 # step 4: local-task-status TASK=<task-id> and record <model-id>
-# step 5: write <model-id> to static/opensearch/dedupe-ingest-pipeline-sparse.json 
+# step 5: write <model-id> to static/opensearch/dedupe-ingest-pipeline-*.json 
 # step 6: local-config-pipeline
 # step 7: local-config-index
 # step 8: local-index-overture DATA=<path>
@@ -83,7 +83,7 @@ local-config-cluster-settings:
 
 
 local-config-register-model:
-	cat static/opensearch/register-model-sparse-document-only.json | \
+	cat static/opensearch/register-model-text.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X POST \
@@ -102,11 +102,11 @@ local-task-status:
 # To do: Write / insert model_id..
 
 local-config-pipeline:
-	cat static/opensearch/dedupe-ingest-pipeline-sparse.json | \
+	cat static/opensearch/dedupe-ingest-pipeline-text.json | \
 		curl -k -s \
 		-H 'Content-Type: application/json' \
 		-X PUT \
-		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline-sparse \
+		https://admin:$(OS_PSWD)@localhost:9200/_ingest/pipeline/dedupe-ingest-pipeline \
 		-d @-
 
 local-remove-index:
@@ -116,7 +116,7 @@ local-remove-index:
 		https://admin:$(OS_PSWD)@localhost:9200/dedupe
 
 local-config-index:
-	cat static/opensearch/dedupe-index.json | \
+	cat static/opensearch/dedupe-index-text.json | \
 	curl -k -s \
 		-H 'Content-type:application/json' \
 		-XPUT \
@@ -134,4 +134,4 @@ local-query:
 	go run cmd/query/main.go \
 		-database-uri "$(OS_DATABASE_URI)" \
 		-name "$(NAME)" \
-		-address "$(ADDRESS)"
+		-address "$(ADDRESS)" $(METADATA)	

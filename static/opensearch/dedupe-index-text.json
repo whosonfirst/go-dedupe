@@ -1,0 +1,40 @@
+{
+    "settings": {
+	"index.knn": true,
+	"default_pipeline": "dedupe-ingest-pipeline"
+    },
+    "mappings": {
+	"properties": {
+	    "id": {
+		"type": "text"
+	    },
+	    "name": {
+		"type": "text"
+	    },
+	    "address": {
+		"type": "text"
+	    },
+	    "name_embeddings": {
+		"type": "knn_vector",
+		"dimension": 768,
+		"method": {
+		    "engine": "faiss",
+		    "space_type": "l2",
+		    "name": "hnsw",
+		    "parameters": {}
+		}
+            },
+	    "address_embeddings": {
+		"type": "knn_vector",
+		"dimension": 768,
+		"method": {
+		    "engine": "faiss",
+		    "space_type": "l2",
+		    "name": "hnsw",
+		    "parameters": {}
+		}
+            }	  
+	    
+	}
+    }
+}

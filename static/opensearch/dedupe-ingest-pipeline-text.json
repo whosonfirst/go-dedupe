@@ -3,10 +3,10 @@
   "processors": [
       {
       "text_embedding": {
-          "model_id": "a8-aBJABf__qJekL_zJC",
+          "model_id": "9dgHD5ABSoo-6k3cWDqn",
           "field_map": {
-              "name": "embeddings",
-              "address": "embeddings"	      
+              "name": "name_embeddings",
+              "address": "address_embeddings"	      
           }
       }
     }
