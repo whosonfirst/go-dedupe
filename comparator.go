@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/sfomuseum/go-csvdict"
 	"github.com/whosonfirst/go-dedupe/database"
@@ -17,6 +18,7 @@ type Comparator struct {
 	parser     parser.Parser
 	writer     io.Writer
 	csv_writer *csvdict.Writer
+	mu         *sync.RWMutex
 }
 
 // NewComparator returns a new `Comparator` instance. 'db' is the `database.Database` instance of existing records to compare
@@ -24,10 +26,13 @@ type Comparator struct {
 // is a `io.Writer` instance where match results will be written.
 func NewComparator(ctx context.Context, db database.Database, prsr parser.Parser, wr io.Writer) (*Comparator, error) {
 
+	mu := new(sync.RWMutex)
+
 	c := &Comparator{
 		database: db,
 		parser:   prsr,
 		writer:   wr,
+		mu:       mu,
 	}
 
 	return c, nil
@@ -68,6 +73,9 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 				"source":     loc.ID,
 				"similarity": fmt.Sprintf("%02f", qr.Similarity),
 			}
+
+			c.mu.Lock()
+			defer c.mu.Unlock()
 
 			if c.csv_writer == nil {
 

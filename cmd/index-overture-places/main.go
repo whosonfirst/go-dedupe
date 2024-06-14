@@ -130,7 +130,7 @@ func main() {
 				// return err
 			}
 
-			// logger.Info("OK", "geohash", loc.Geohash())			
+			// logger.Info("OK", "geohash", loc.Geohash())
 			monitor.Signal(ctx)
 
 		}(path, rec)

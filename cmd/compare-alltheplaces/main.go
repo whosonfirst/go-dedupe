@@ -13,8 +13,11 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"sync"
+	"sync/atomic"
 
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
 	"github.com/whosonfirst/go-dedupe/database"
@@ -27,7 +30,8 @@ func main() {
 
 	var database_uri string
 	var parser_uri string
-	// var monitor_uri string
+	var monitor_uri string
+
 	// var bucket_uri string
 	// var is_bzipped bool
 
@@ -37,7 +41,8 @@ func main() {
 
 	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
 	flag.StringVar(&parser_uri, "parser-uri", "alltheplaces://", "...")
-	// flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
+	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
+
 	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	// flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 
@@ -78,8 +83,26 @@ func main() {
 
 	defer cmp.Flush()
 
-	total_matches := 0
-	total_features := 0
+	monitor, err := timings.NewMonitor(ctx, monitor_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to create monitor, %v", err)
+	}
+
+	monitor.Start(ctx, os.Stderr)
+	defer monitor.Stop(ctx)
+
+	max_workers := 20
+	throttle := make(chan bool, max_workers)
+
+	for i := 0; i < max_workers; i++ {
+		throttle <- true
+	}
+
+	total_matches := int64(0)
+	total_features := int64(0)
+
+	wg := new(sync.WaitGroup)
 
 	for _, path := range uris {
 
@@ -106,36 +129,49 @@ func main() {
 			continue
 		}
 
-		features := 0
-		matches := 0
+		features := int64(0)
+		matches := int64(0)
 
 		for idx, f := range fc.Features {
 
-			features += 1
-			total_features += 1
+			<-throttle
 
-			logger := slog.Default()
-			logger = logger.With("path", path)
-			logger = logger.With("offset", idx)
+			wg.Add(1)
 
-			f_body, err := f.MarshalJSON()
+			go func(f *geojson.Feature) {
 
-			if err != nil {
-				logger.Warn("Failed to marshal feature", "error", err)
-				continue
-			}
+				defer func() {
+					wg.Done()
+					throttle <- true
+					monitor.Signal(ctx)
+				}()
 
-			is_match, err := cmp.Compare(ctx, f_body, threshold)
+				atomic.AddInt64(&features, 1)
+				atomic.AddInt64(&total_features, 1)
 
-			if err != nil {
-				slog.Warn("Failed to compare feature", "path", path, "error", err)
-				continue
-			}
+				logger := slog.Default()
+				logger = logger.With("path", path)
+				logger = logger.With("offset", idx)
 
-			if is_match {
-				matches += 1
-				total_matches += 1
-			}
+				f_body, err := f.MarshalJSON()
+
+				if err != nil {
+					logger.Warn("Failed to marshal feature", "error", err)
+					return
+				}
+
+				is_match, err := cmp.Compare(ctx, f_body, threshold)
+
+				if err != nil {
+					slog.Warn("Failed to compare feature", "path", path, "error", err)
+					return
+				}
+
+				if is_match {
+					atomic.AddInt64(&matches, 1)
+					atomic.AddInt64(&total_matches, 1)
+				}
+			}(f)
 		}
 
 		slog.Info("Matches", "path", path, "features", features, "matches", matches, "total features", total_features, "total matches", total_matches)
