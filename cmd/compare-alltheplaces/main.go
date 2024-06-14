@@ -174,7 +174,7 @@ func main() {
 			}(f)
 		}
 
-		slog.Info("Matches", "path", path, "features", features, "matches", matches, "total features", total_features, "total matches", total_matches)
+		slog.Info("Matches", "path", path, "features", atomic.LoadInt64(&features), "matches", atomic.LoadInt64(&matches), "total features", atomic.LoadInt64(&total_features), "total matches", atomic.LoadInt64(&total_matches))
 
 	}
 
