@@ -325,7 +325,7 @@ func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location)
 
 	wr.Flush()
 
-	fmt.Println(buf.String())
+	// fmt.Println(buf.String())
 
 	body_r := bytes.NewReader(buf.Bytes())
 

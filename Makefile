@@ -7,7 +7,7 @@ URLESCAPE=$(shell which urlescape)
 # (That means you should change this.)
 OS_PSWD=KJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn
 
-OS_MODEL=model
+OS_MODEL=9dgHD5ABSoo-6k3cWDqn
 
 # If true this tends to trigger Java heap memory errors for OS run inside a Docker container
 OS_BULK=false
@@ -22,9 +22,10 @@ OS_DATABASE_URI=opensearch://?dsn=$(ENC_OS_DSN)&model=$(OS_MODEL)&bulk-index=$(O
 # And then:
 # curl -v -k https://admin:$(OS_PSWD)@localhost:9200/
 
+#		-it \
+
 local-server:
 	docker run \
-		-it \
 		-p 9200:9200 \
 		-p 9600:9600 \
 		-e "discovery.type=single-node" \
@@ -60,7 +61,7 @@ local-search:
 	-H 'Content-Type: application/json' \
 	-X GET \
 	https://admin:$(OS_PSWD)@localhost:9200/dedupe/_search \
-	| jq
+	| json_pp 
 
 # https://opensearch.org/docs/latest/ml-commons-plugin/pretrained-models/
 # https://opensearch.org/blog/improving-document-retrieval-with-sparse-semantic-encoders/

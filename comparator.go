@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
+	_ "log/slog"
 	"sync"
 
 	"github.com/sfomuseum/go-csvdict"
@@ -63,7 +63,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 		if float64(qr.Similarity) >= threshold {
 
-			slog.Info("Match", "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
+			// slog.Info("Match", "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
 			is_match = true
 
 			row := map[string]string{
