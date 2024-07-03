@@ -2,10 +2,10 @@ package embeddings
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	"github.com/philippgille/chromem-go"
-	"github.com/whosonfirst/go-dedupe"
 )
 
 type ChromemOllamaEmbedder struct {
@@ -43,7 +43,7 @@ func NewChromemOllamaEmbedder(ctx context.Context, uri string) (Embedder, error)
 }
 
 func (e *ChromemOllamaEmbedder) Embeddings(ctx context.Context, content string) ([]float64, error) {
-	return nil, new(dedupe.NotImplementedError)
+	return nil, fmt.Errorf("Not implemented")
 }
 
 func (e *ChromemOllamaEmbedder) Embeddings32(ctx context.Context, content string) ([]float32, error) {

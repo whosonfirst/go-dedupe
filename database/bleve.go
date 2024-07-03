@@ -9,9 +9,18 @@ package database
 // https://ollama.com/blog/embedding-models
 // https://github.com/ollama/ollama/blob/main/docs/api.md
 
+/*
+
+> go run --tags=vectors cmd/index-overture-places/main.go -database-uri 'bleve:///usr/local/data/venues-b.db?dimensions=768&embedder-uri=chromemollama://?model=mxbai-embed-large' /usr/local/data/overture/places-geojson/*.bz2
+
+2024/07/03 15:29:44 ERROR Failed to add record path=usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2 "line number"=13624 id="ovtr:id=08fa8b1a31a6150c0357ed79da9e1fc2" location="Vou de Marisa, Avenida Rui Barbosa, 597 Macaé RJ BR" error="Failed to derive embeddings, error response from the embedding API: 400 Bad Request"
+
+*/
+
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"strconv"
@@ -61,7 +70,7 @@ func NewBleveDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to parse dimensions, %w", err)
 	}
 
-	embedder_uri := q.Get("embedder")
+	embedder_uri := q.Get("embedder-uri")
 
 	embdr, err := embeddings.NewEmbedder(ctx, embedder_uri)
 
@@ -118,10 +127,10 @@ func (db *BleveDatabase) Add(ctx context.Context, loc *location.Location) error 
 	id := loc.ID
 	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
 
-	embeddings, err := db.embedder.Embeddings(ctx, text)
+	embeddings, err := db.embedder.Embeddings32(ctx, text)
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive embeddings, %w", err)
+		return fmt.Errorf("Failed to derive embeddings for '%s', %w", text, err)
 	}
 
 	doc := BleveDocument{
@@ -138,16 +147,16 @@ func (db *BleveDatabase) Query(ctx context.Context, loc *location.Location) ([]*
 
 	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
 
-	embeddings, err := db.embedder.Embeddings(ctx, text)
+	embeddings, err := db.embedder.Embeddings32(ctx, text)
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive embeddings, %w", err)
+		return nil, fmt.Errorf("Failed to derive embeddings, %w", err)
 	}
 
-	k := 5
-	boost := 0
+	k := int64(5)
+	boost := 0.0
 
-	req := bleve.NewSearchRequest(query.NewMatchNoneQuery())
+	req := bleve.NewSearchRequest(bleve.NewMatchNoneQuery())
 	req.AddKNN("embeddings", embeddings, k, boost)
 
 	rsp, err := db.index.Search(req)
@@ -156,7 +165,7 @@ func (db *BleveDatabase) Query(ctx context.Context, loc *location.Location) ([]*
 		return nil, err
 	}
 
-	// fmt.Println(searchResult.Hits)
+	slog.Info("Q", "hits", rsp.Hits)
 
 	results := make([]*QueryResult, 0)
 	return results, nil
