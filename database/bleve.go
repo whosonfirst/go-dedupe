@@ -136,6 +136,28 @@ func (db *BleveDatabase) Add(ctx context.Context, loc *location.Location) error 
 
 func (db *BleveDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 
+	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
+
+	embeddings, err := db.embedder.Embeddings(ctx, text)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive embeddings, %w", err)
+	}
+
+	k := 5
+	boost := 0
+
+	req := bleve.NewSearchRequest(query.NewMatchNoneQuery())
+	req.AddKNN("embeddings", embeddings, k, boost)
+
+	rsp, err := db.index.Search(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// fmt.Println(searchResult.Hits)
+
 	results := make([]*QueryResult, 0)
 	return results, nil
 }
