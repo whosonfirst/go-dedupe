@@ -9,6 +9,7 @@ require (
 	github.com/aaronland/go-jsonl v0.0.20
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.0.17
+	github.com/blevesearch/bleve/v2 v2.4.1
 	github.com/mmcloughlin/geohash v0.10.0
 	github.com/ollama/ollama v0.1.42
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
@@ -28,6 +29,7 @@ require (
 )
 
 require (
+	github.com/RoaringBitmap/roaring v1.9.3 // indirect
 	github.com/aaronland/go-aws-auth v1.6.1 // indirect
 	github.com/aaronland/go-json-query v0.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.26.0 // indirect
@@ -46,13 +48,37 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.5 // indirect
 	github.com/aws/smithy-go v1.20.1 // indirect
+	github.com/bits-and-blooms/bitset v1.12.0 // indirect
+	github.com/blevesearch/bleve_index_api v1.1.9 // indirect
+	github.com/blevesearch/geo v0.1.20 // indirect
+	github.com/blevesearch/go-faiss v1.0.19 // indirect
+	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
+	github.com/blevesearch/gtreap v0.1.1 // indirect
+	github.com/blevesearch/mmap-go v1.0.4 // indirect
+	github.com/blevesearch/scorch_segment_api/v2 v2.2.14 // indirect
+	github.com/blevesearch/segment v0.9.1 // indirect
+	github.com/blevesearch/snowballstem v0.9.0 // indirect
+	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
+	github.com/blevesearch/vellum v1.0.10 // indirect
+	github.com/blevesearch/zapx/v11 v11.3.10 // indirect
+	github.com/blevesearch/zapx/v12 v12.3.10 // indirect
+	github.com/blevesearch/zapx/v13 v13.3.10 // indirect
+	github.com/blevesearch/zapx/v14 v14.3.10 // indirect
+	github.com/blevesearch/zapx/v15 v15.3.13 // indirect
+	github.com/blevesearch/zapx/v16 v16.1.4 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
@@ -62,6 +88,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-crawl v0.2.2 // indirect
 	github.com/whosonfirst/go-whosonfirst-flags v0.5.1 // indirect
 	github.com/whosonfirst/walk v0.0.2 // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.25.0 // indirect

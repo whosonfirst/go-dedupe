@@ -8,26 +8,26 @@ package database
 Starting Milus inside a Docker container fails with:
 
 2024-06-14 13:04:32 2024/06/14 20:04:32 maxprocs: Leaving GOMAXPROCS=10: CPU quota undefined
-2024-06-14 13:04:32 
-2024-06-14 13:04:32     __  _________ _   ____  ______    
-2024-06-14 13:04:32    /  |/  /  _/ /| | / / / / / __/    
-2024-06-14 13:04:32   / /|_/ // // /_| |/ / /_/ /\ \    
-2024-06-14 13:04:32  /_/  /_/___/____/___/\____/___/     
-2024-06-14 13:04:32 
+2024-06-14 13:04:32
+2024-06-14 13:04:32     __  _________ _   ____  ______
+2024-06-14 13:04:32    /  |/  /  _/ /| | / / / / / __/
+2024-06-14 13:04:32   / /|_/ // // /_| |/ / /_/ /\ \
+2024-06-14 13:04:32  /_/  /_/___/____/___/\____/___/
+2024-06-14 13:04:32
 2024-06-14 13:04:32 Welcome to use Milvus!
 2024-06-14 13:04:32 Version:   v2.4.4
 2024-06-14 13:04:32 Built:     Fri May 31 10:25:16 UTC 2024
 2024-06-14 13:04:32 GitCommit: 8e7f36d9
 2024-06-14 13:04:32 GoVersion: go version go1.20.7 linux/arm64
-2024-06-14 13:04:32 
+2024-06-14 13:04:32
 2024-06-14 13:04:32 TotalMem: 25166397440
 2024-06-14 13:04:32 UsedMem: 84520960
-2024-06-14 13:04:32 
+2024-06-14 13:04:32
 2024-06-14 13:04:32 open pid file: /run/milvus/standalone.pid
 2024-06-14 13:04:32 lock pid file: /run/milvus/standalone.pid
 2024-06-14 13:04:32 panic: runtime error: invalid memory address or nil pointer dereference
 2024-06-14 13:04:32 [signal SIGSEGV: segmentation violation code=0x1 addr=0x18 pc=0x286c50c]
-2024-06-14 13:04:32 
+2024-06-14 13:04:32
 2024-06-14 13:04:32 goroutine 1 [running]:
 2024-06-14 13:04:32 panic({0x4975ae0, 0x7464180})
 2024-06-14 13:04:32     /usr/local/go/src/runtime/panic.go:987 +0x3ac fp=0x400140f4b0 sp=0x400140f3f0 pc=0x1cee05c
