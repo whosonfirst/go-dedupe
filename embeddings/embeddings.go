@@ -16,6 +16,7 @@ import (
 type Embedder interface {
 	// Embeddings returns the (vector) embeddings for a string.
 	Embeddings(context.Context, string) ([]float64, error)
+	Embeddings32(context.Context, string) ([]float32, error)
 }
 
 // EmbedderInitializationFunc is a function defined by individual embedder package and used to create

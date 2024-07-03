@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/ollama/ollama/api"
+	"github.com/whosonfirst/go-dedupe"
 )
 
 // OllamaEmbedder implements the `Embedder` interface using an Ollama API endpoint to derive embeddings.
@@ -94,4 +95,10 @@ func (e *OllamaEmbedder) Embeddings(ctx context.Context, content string) ([]floa
 	}
 
 	return rsp.Embedding, nil
+}
+
+// TBD...
+
+func (e *OllamaEmbedder) Embeddings32(ctx context.Context, content string) ([]float32, error) {
+	return nil, new(dedupe.NotImplementedError)
 }

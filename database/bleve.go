@@ -1,3 +1,6 @@
+//go:build vectors
+// +build vectors
+
 package database
 
 // Remember: This assumes that Ollama is running in 'serve' mode on its default port.
@@ -15,18 +18,20 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/whosonfirst/go-dedupe/embeddings"
 	"github.com/whosonfirst/go-dedupe/location"
 )
 
 type BleveDatabase struct {
-	index bleve.Index
+	index    bleve.Index
+	embedder embeddings.Embedder
 }
 
 type BleveDocument struct {
-	Id      string    `json:"id"`
-	Text    string    `json:"text"`
-	Geohash string    `json:"geohash"`
-	Vec     []float32 `json:"vec"`
+	Id         string    `json:"id"`
+	Text       string    `json:"text"`
+	Geohash    string    `json:"geohash"`
+	Embeddings []float32 `json:"embeddings"`
 }
 
 func init() {
@@ -54,6 +59,14 @@ func NewBleveDatabase(ctx context.Context, uri string) (Database, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse dimensions, %w", err)
+	}
+
+	embedder_uri := q.Get("embedder")
+
+	embdr, err := embeddings.NewEmbedder(ctx, embedder_uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new embedder, %w", err)
 	}
 
 	var idx bleve.Index
@@ -93,7 +106,8 @@ func NewBleveDatabase(ctx context.Context, uri string) (Database, error) {
 	}
 
 	db := &BleveDatabase{
-		index: idx,
+		index:    idx,
+		embedder: embdr,
 	}
 
 	return db, nil
@@ -104,10 +118,17 @@ func (db *BleveDatabase) Add(ctx context.Context, loc *location.Location) error 
 	id := loc.ID
 	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
 
+	embeddings, err := db.embedder.Embeddings(ctx, text)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive embeddings, %w", err)
+	}
+
 	doc := BleveDocument{
-		Id:      id,
-		Text:    text,
-		Geohash: loc.Geohash(),
+		Id:         id,
+		Text:       text,
+		Geohash:    loc.Geohash(),
+		Embeddings: embeddings,
 	}
 
 	return db.index.Index(doc.Id, doc)
