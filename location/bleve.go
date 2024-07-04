@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	_ "log/slog"
 	"net/url"
 	"os"
 
@@ -95,14 +95,13 @@ func (db *BleveDatabase) AddLocation(ctx context.Context, loc *Location) error {
 		Location: string(enc_loc),
 	}
 
-	slog.Info("Add", "id", loc.ID, "geohash", geohash)
+	// slog.Info("Add", "id", loc.ID, "geohash", geohash)
 	return db.index.Index(doc.Id, doc)
 }
 
 func (db *BleveDatabase) GetById(ctx context.Context, id string) (*Location, error) {
 
-	q := bleve.NewMatchQuery(id)
-	// q := bleve.NewDocIDQuery([]string{id})
+	q := bleve.NewDocIDQuery([]string{id})
 
 	req := bleve.NewSearchRequest(q)
 	req.Fields = []string{"location"}
@@ -112,8 +111,6 @@ func (db *BleveDatabase) GetById(ctx context.Context, id string) (*Location, err
 	if err != nil {
 		return nil, err
 	}
-
-	// slog.Info("Q", "id", id, "total", rsp.Total, "status", rsp.Status, "hits", rsp.Hits)
 
 	if rsp.Total == 0 {
 		return nil, nil
@@ -140,8 +137,6 @@ func (db *BleveDatabase) GetWithGeohash(ctx context.Context, geohash string, cb 
 	if err != nil {
 		return err
 	}
-
-	slog.Info("Q", "geohash", geohash, "total", rsp.Total, "status", rsp.Status)
 
 	for _, m := range rsp.Hits {
 

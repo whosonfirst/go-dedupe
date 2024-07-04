@@ -10,6 +10,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.0.17
 	github.com/blevesearch/bleve/v2 v2.4.1
+	github.com/json-iterator/go v1.1.12
 	github.com/mmcloughlin/geohash v0.10.0
 	github.com/ollama/ollama v0.1.42
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
@@ -75,7 +76,6 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
