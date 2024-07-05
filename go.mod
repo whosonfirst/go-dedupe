@@ -10,6 +10,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.0.17
 	github.com/blevesearch/bleve/v2 v2.4.1
+	github.com/dgraph-io/ristretto v0.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mmcloughlin/geohash v0.10.0
 	github.com/ollama/ollama v0.1.42
@@ -68,9 +69,12 @@ require (
 	github.com/blevesearch/zapx/v15 v15.3.13 // indirect
 	github.com/blevesearch/zapx/v16 v16.1.4 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
+	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
@@ -80,6 +84,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sfomuseum/go-edtf v1.1.1 // indirect
 	github.com/sfomuseum/iso8601duration v1.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

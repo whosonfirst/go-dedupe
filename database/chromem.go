@@ -44,13 +44,28 @@ func NewChromemDatabase(ctx context.Context, uri string) (Database, error) {
 	q := u.Query()
 	model := q.Get("model")
 
-	chromem_db, err := chromem.NewPersistentDB(db_path, false)
+	var chromem_db *chromem.DB
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create database, %w", err)
+	if db_path != "" {
+
+		db, err := chromem.NewPersistentDB(db_path, false)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create database, %w", err)
+		}
+
+		chromem_db = db
+
+	} else {
+
+		chromem_db = chromem.NewDB()
 	}
 
 	collection, err := chromem_db.GetOrCreateCollection(col_name, nil, chromem.NewEmbeddingFuncOllama(model, ""))
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create collection, %w", err)
+	}
 
 	db := &ChromemDatabase{
 		collection: collection,

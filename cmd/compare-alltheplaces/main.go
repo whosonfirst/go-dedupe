@@ -20,7 +20,8 @@ import (
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
-	"github.com/whosonfirst/go-dedupe/database"
+	// "github.com/whosonfirst/go-dedupe/database"
+	"github.com/whosonfirst/go-dedupe/location"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
 	_ "gocloud.dev/blob/fileblob"
@@ -28,7 +29,7 @@ import (
 
 func main() {
 
-	var database_uri string
+	var location_database_uri string
 	var parser_uri string
 	var monitor_uri string
 
@@ -37,9 +38,10 @@ func main() {
 
 	var threshold float64
 
-	flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=9dgHD5ABSoo-6k3cWDqn&bulk-index=false", "...")
-
+	// flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=9dgHD5ABSoo-6k3cWDqn&bulk-index=false", "...")
 	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+
+	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
 	flag.StringVar(&parser_uri, "parser-uri", "alltheplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 
@@ -54,7 +56,7 @@ func main() {
 	ctx := context.Background()
 
 	slog.Info("Create database")
-	db, err := database.NewDatabase(ctx, database_uri)
+	db, err := location.NewDatabase(ctx, location_database_uri)
 
 	if err != nil {
 		log.Fatalf("Failed to create new database, %v", err)
