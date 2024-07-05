@@ -32,6 +32,7 @@ func main() {
 	var location_database_uri string
 	var parser_uri string
 	var monitor_uri string
+	var workers int
 
 	// var bucket_uri string
 	// var is_bzipped bool
@@ -49,6 +50,8 @@ func main() {
 	// flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 
 	flag.Float64Var(&threshold, "threshold", 0.95, "...")
+
+	flag.IntVar(&workers, "workers", 10, "...")
 	flag.Parse()
 
 	uris := flag.Args()
@@ -95,10 +98,9 @@ func main() {
 	defer monitor.Stop(ctx)
 
 	// Anything more seems to make a local (Docker) OS instance SAD
-	max_workers := 1
-	throttle := make(chan bool, max_workers)
+	throttle := make(chan bool, workers)
 
-	for i := 0; i < max_workers; i++ {
+	for i := 0; i < workers; i++ {
 		throttle <- true
 	}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	_ "log/slog"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	_ "time"
@@ -125,11 +125,26 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 		return false, fmt.Errorf("Failed to retrieve records for geohash, %w", err)
 	}
 
+	if atomic.LoadInt32(&count) == 0 {
+		return is_match, nil
+	}
+
 	// slog.Info("Candidates", "geohash", geohash, "count", atomic.LoadInt32(&count), "time", time.Since(t1))
+
+	/*
+
+		Do not understand these errors:
+
+	2024/07/05 13:21:29 ERROR Failed to query geohash=u0myt count=3 error="Failed to query, nResults must be <= the number of documents in the collection"
+	2024/07/05 13:21:29 WARN Failed to compare feature path=/usr/local/data/alltheplaces/aldi_sud_de.geojson error="Failed to query feature, Failed to query, nResults must be <= the number of documents in the collection"
+	2024/07/05 13:22:11 INFO Matches path=/usr/local/data/alltheplaces/aldi_sud_de.geojson features=2019 matches=430 "total features"=48678 "total matches"=1568
+
+	*/
 
 	results, err := db.Query(ctx, loc)
 
 	if err != nil {
+		slog.Error("Failed to query", "geohash", geohash, "count", atomic.LoadInt32(&count), "error", err)
 		return is_match, fmt.Errorf("Failed to query feature, %w", err)
 	}
 
