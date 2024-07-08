@@ -20,17 +20,15 @@ import (
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
-	// "github.com/whosonfirst/go-dedupe/database"
-	"github.com/whosonfirst/go-dedupe/location"
 	_ "github.com/whosonfirst/go-dedupe/overture"
-	"github.com/whosonfirst/go-dedupe/parser"
 	_ "gocloud.dev/blob/fileblob"
 )
 
 func main() {
 
+	var embeddings_database_uri string
 	var location_database_uri string
-	var parser_uri string
+	var location_parser_uri string
 	var monitor_uri string
 	var workers int
 
@@ -39,11 +37,10 @@ func main() {
 
 	var threshold float64
 
-	// flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=9dgHD5ABSoo-6k3cWDqn&bulk-index=false", "...")
-	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&embeddings_database_uri, "embeddings-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
-	flag.StringVar(&parser_uri, "parser-uri", "alltheplaces://", "...")
+	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 
 	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
@@ -51,26 +48,12 @@ func main() {
 
 	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 
-	flag.IntVar(&workers, "workers", 10, "...")
+	flag.IntVar(&workers, "workers", 50, "...")
 	flag.Parse()
 
 	uris := flag.Args()
 
 	ctx := context.Background()
-
-	slog.Info("Create database")
-	db, err := location.NewDatabase(ctx, location_database_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create new database, %v", err)
-	}
-
-	slog.Info("Create parser")
-	prsr, err := parser.NewParser(ctx, parser_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create new parser, %v", err)
-	}
 
 	/*
 		source_bucket, err := bucket.OpenBucket(ctx, bucket_uri)
@@ -80,7 +63,14 @@ func main() {
 		}
 	*/
 
-	cmp, err := dedupe.NewComparator(ctx, db, prsr, os.Stdout)
+	cmp_opts := &dedupe.ComparatorOptions{
+		LocationDatabaseURI:   location_database_uri,
+		LocationParserURI:     location_parser_uri,
+		EmbeddingsDatabaseURI: embeddings_database_uri,
+		Writer:                os.Stdout,
+	}
+
+	cmp, err := dedupe.NewComparator(ctx, cmp_opts)
 
 	if err != nil {
 		log.Fatalf("Failed to create new comparator, %v", err)

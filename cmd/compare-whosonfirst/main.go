@@ -19,27 +19,24 @@ import (
 	"os"
 
 	"github.com/whosonfirst/go-dedupe"
-	// "github.com/whosonfirst/go-dedupe/database"
-	"github.com/whosonfirst/go-dedupe/location"
 	_ "github.com/whosonfirst/go-dedupe/overture"
-	"github.com/whosonfirst/go-dedupe/parser"
 	_ "github.com/whosonfirst/go-dedupe/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-iterate/v2/iterator"
 )
 
 func main() {
 
+	var embeddings_database_uri string
 	var location_database_uri string
-	var parser_uri string
+	var location_parser_uri string
 	var iterator_uri string
 	var threshold float64
 
-	// flag.StringVar(&database_uri, "database-uri", "opensearch://?dsn=https%3A%2F%2Flocalhost%3A9200%2Fdedupe%3Fusername%3Dadmin%26password%3DKJHFGDFJGSJfsdkjfhsdoifruwo45978h52dcn%26insecure%3Dtrue%26require-tls%3Dtrue&model=a8-aBJABf__qJekL_zJC&bulk-index=false", "...")
-	//flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&embeddings_database_uri, "embeddings-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
+	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
 
-	flag.StringVar(&parser_uri, "parser-uri", "whosonfirstvenues://", "...")
 	flag.StringVar(&iterator_uri, "iterator-uri", "repo://", "...")
 
 	flag.Float64Var(&threshold, "threshold", 0.75, "...")
@@ -49,21 +46,14 @@ func main() {
 
 	ctx := context.Background()
 
-	slog.Info("Create database")
-	db, err := location.NewDatabase(ctx, location_database_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create new database, %v", err)
+	cmp_opts := &dedupe.ComparatorOptions{
+		LocationDatabaseURI:   location_database_uri,
+		LocationParserURI:     location_parser_uri,
+		EmbeddingsDatabaseURI: embeddings_database_uri,
+		Writer:                os.Stdout,
 	}
 
-	slog.Info("Create parser")
-	prsr, err := parser.NewParser(ctx, parser_uri)
-
-	if err != nil {
-		log.Fatalf("Failed to create new parser, %v", err)
-	}
-
-	cmp, err := dedupe.NewComparator(ctx, db, prsr, os.Stdout)
+	cmp, err := dedupe.NewComparator(ctx, cmp_opts)
 
 	if err != nil {
 		log.Fatalf("Failed to create new comparator, %v", err)
