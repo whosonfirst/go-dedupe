@@ -24,16 +24,16 @@ import (
 
 func main() {
 
-	var database_uri string
-	var parser_uri string
+	var location_database_uri string
+	var location_parser_uri string
 	var monitor_uri string
 	var bucket_uri string
 	var is_bzipped bool
 
 	var start_after int
 
-	flag.StringVar(&database_uri, "database-uri", "", "...")
-	flag.StringVar(&parser_uri, "parser-uri", "overtureplaces://", "...")
+	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
+	flag.StringVar(&location_parser_uri, "location-parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
@@ -45,18 +45,18 @@ func main() {
 
 	ctx := context.Background()
 
-	db, err := location.NewDatabase(ctx, database_uri)
+	db, err := location.NewDatabase(ctx, location_database_uri)
 
 	if err != nil {
-		log.Fatalf("Failed to create new database, %v", err)
+		log.Fatalf("Failed to create new location database, %v", err)
 	}
 
 	defer db.Close(ctx)
 
-	prsr, err := parser.NewParser(ctx, parser_uri)
+	prsr, err := parser.NewParser(ctx, location_parser_uri)
 
 	if err != nil {
-		log.Fatalf("Failed to create new parser, %v", err)
+		log.Fatalf("Failed to create new location parser, %v", err)
 	}
 
 	source_bucket, err := bucket.OpenBucket(ctx, bucket_uri)

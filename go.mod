@@ -13,7 +13,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mmcloughlin/geohash v0.10.0
-	github.com/ollama/ollama v0.1.42
+	github.com/ollama/ollama v0.2.1
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
 	github.com/paulmach/orb v0.11.1
 	github.com/philippgille/chromem-go v0.6.0
@@ -21,7 +21,7 @@ require (
 	github.com/sfomuseum/go-flags v0.10.0
 	github.com/sfomuseum/go-timings v1.2.1
 	github.com/tidwall/gjson v1.17.1
-	github.com/whosonfirst/go-overture v0.0.0-20240605010857-a1184ac905fc
+	github.com/whosonfirst/go-overture v0.0.0-20240608205656-2f9a190af0d5
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27
 	github.com/whosonfirst/go-whosonfirst-iterate/v2 v2.4.1
 	github.com/whosonfirst/go-whosonfirst-opensearch v0.0.18

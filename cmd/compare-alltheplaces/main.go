@@ -26,7 +26,7 @@ import (
 
 func main() {
 
-	var embeddings_database_uri string
+	var vector_database_uri string
 	var location_database_uri string
 	var location_parser_uri string
 	var monitor_uri string
@@ -37,7 +37,7 @@ func main() {
 
 	var threshold float64
 
-	flag.StringVar(&embeddings_database_uri, "embeddings-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
 	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
@@ -64,10 +64,10 @@ func main() {
 	*/
 
 	cmp_opts := &dedupe.ComparatorOptions{
-		LocationDatabaseURI:   location_database_uri,
-		LocationParserURI:     location_parser_uri,
-		EmbeddingsDatabaseURI: embeddings_database_uri,
-		Writer:                os.Stdout,
+		LocationDatabaseURI: location_database_uri,
+		LocationParserURI:   location_parser_uri,
+		VectorDatabaseURI:   vector_database_uri,
+		Writer:              os.Stdout,
 	}
 
 	cmp, err := dedupe.NewComparator(ctx, cmp_opts)

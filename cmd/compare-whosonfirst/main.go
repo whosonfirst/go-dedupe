@@ -26,16 +26,16 @@ import (
 
 func main() {
 
-	var embeddings_database_uri string
+	var vector_database_uri string
 	var location_database_uri string
 	var location_parser_uri string
 	var iterator_uri string
 	var threshold float64
 
-	flag.StringVar(&embeddings_database_uri, "embeddings-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
-	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
+	flag.StringVar(&location_parser_uri, "parser-uri", "whosonfirstvenues://", "...")
 
 	flag.StringVar(&iterator_uri, "iterator-uri", "repo://", "...")
 
@@ -46,11 +46,12 @@ func main() {
 
 	ctx := context.Background()
 
+	slog.Info("POOFACE")
 	cmp_opts := &dedupe.ComparatorOptions{
-		LocationDatabaseURI:   location_database_uri,
-		LocationParserURI:     location_parser_uri,
-		EmbeddingsDatabaseURI: embeddings_database_uri,
-		Writer:                os.Stdout,
+		LocationDatabaseURI: location_database_uri,
+		LocationParserURI:   location_parser_uri,
+		VectorDatabaseURI:   vector_database_uri,
+		Writer:              os.Stdout,
 	}
 
 	cmp, err := dedupe.NewComparator(ctx, cmp_opts)
@@ -61,7 +62,10 @@ func main() {
 
 	defer cmp.Flush()
 
+	slog.Info("OMG")
 	iter_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
+
+		slog.Info(path)
 
 		body, err := io.ReadAll(r)
 
@@ -83,12 +87,14 @@ func main() {
 		return nil
 	}
 
+	slog.Info("WTF")
 	iter, err := iterator.NewIterator(ctx, iterator_uri, iter_cb)
 
 	if err != nil {
 		log.Fatalf("Failed to create iterator, %v", err)
 	}
 
+	slog.Info("BBQ")
 	err = iter.IterateURIs(ctx, uris...)
 
 	if err != nil {

@@ -1,4 +1,4 @@
-package database
+package vector
 
 type QueryResult struct {
 	ID      string `json:"id"`

@@ -15,25 +15,25 @@ import (
 	"github.com/aaronland/gocloud-blob/bucket"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
-	"github.com/whosonfirst/go-dedupe/database"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	"github.com/whosonfirst/go-dedupe/parser"
+	"github.com/whosonfirst/go-dedupe/vector"
 	"github.com/whosonfirst/go-overture/geojsonl"
 	_ "gocloud.dev/blob/fileblob"
 )
 
 func main() {
 
-	var database_uri string
-	var parser_uri string
+	var vector_database_uri string
+	var location_parser_uri string
 	var monitor_uri string
 	var bucket_uri string
 	var is_bzipped bool
 
 	var start_after int
 
-	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
-	flag.StringVar(&parser_uri, "parser-uri", "overtureplaces://", "...")
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&location_parser_uri, "location-parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
@@ -45,7 +45,7 @@ func main() {
 
 	ctx := context.Background()
 
-	db, err := database.NewDatabase(ctx, database_uri)
+	db, err := vector.NewDatabase(ctx, vector_database_uri)
 
 	if err != nil {
 		log.Fatalf("Failed to create new database, %v", err)
@@ -53,7 +53,7 @@ func main() {
 
 	defer db.Close(ctx)
 
-	prsr, err := parser.NewParser(ctx, parser_uri)
+	prsr, err := parser.NewParser(ctx, location_parser_uri)
 
 	if err != nil {
 		log.Fatalf("Failed to create new parser, %v", err)

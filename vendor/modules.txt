@@ -295,9 +295,10 @@ github.com/mschoch/smat
 # github.com/natefinch/atomic v1.0.1
 ## explicit; go 1.12
 github.com/natefinch/atomic
-# github.com/ollama/ollama v0.1.42
+# github.com/ollama/ollama v0.2.1
 ## explicit; go 1.22.0
 github.com/ollama/ollama/api
+github.com/ollama/ollama/envconfig
 github.com/ollama/ollama/format
 github.com/ollama/ollama/version
 # github.com/opensearch-project/opensearch-go/v2 v2.3.0
@@ -346,7 +347,7 @@ github.com/tidwall/pretty
 # github.com/whosonfirst/go-ioutil v1.0.2
 ## explicit; go 1.16
 github.com/whosonfirst/go-ioutil
-# github.com/whosonfirst/go-overture v0.0.0-20240605010857-a1184ac905fc
+# github.com/whosonfirst/go-overture v0.0.0-20240608205656-2f9a190af0d5
 ## explicit; go 1.22.4
 github.com/whosonfirst/go-overture/geojsonl
 # github.com/whosonfirst/go-whosonfirst-crawl v0.2.2

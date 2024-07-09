@@ -1,4 +1,4 @@
-package database
+package vector
 
 import (
 	"context"

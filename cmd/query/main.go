@@ -6,19 +6,19 @@ import (
 	"log"
 
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/whosonfirst/go-dedupe/database"
 	"github.com/whosonfirst/go-dedupe/location"
+	"github.com/whosonfirst/go-dedupe/vector"
 )
 
 func main() {
 
-	var database_uri string
+	var vector_database_uri string
 	var name string
 	var address string
 
 	var kv_pairs multi.KeyValueString
 
-	flag.StringVar(&database_uri, "database-uri", "chromem://venues/usr/local/data/venues-dedupe.db?model=mxbai-embed-large", "...")
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://venues/usr/local/data/venues-dedupe.db?model=mxbai-embed-large", "...")
 	flag.StringVar(&name, "name", "", "...")
 	flag.StringVar(&address, "address", "", "...")
 	flag.Var(&kv_pairs, "metadata", "...")
@@ -27,7 +27,7 @@ func main() {
 
 	ctx := context.Background()
 
-	db, err := database.NewDatabase(ctx, database_uri)
+	db, err := vector.NewDatabase(ctx, vector_database_uri)
 
 	if err != nil {
 		log.Fatalf("Failed to create new database, %v", err)

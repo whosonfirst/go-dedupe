@@ -12,27 +12,27 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/sfomuseum/go-csvdict"
-	"github.com/whosonfirst/go-dedupe/database"
 	"github.com/whosonfirst/go-dedupe/location"
 	"github.com/whosonfirst/go-dedupe/parser"
+	"github.com/whosonfirst/go-dedupe/vector"
 )
 
 // Compatator compares arbirtrary locations against a database of existing records.
 type Comparator struct {
-	location_database         location.Database
-	location_parser           parser.Parser
-	embeddings_database_uri   string
-	embeddings_database_cache *ristretto.Cache
-	writer                    io.Writer
-	csv_writer                *csvdict.Writer
-	mu                        *sync.RWMutex
+	location_database     location.Database
+	location_parser       parser.Parser
+	vector_database_uri   string
+	vector_database_cache *ristretto.Cache
+	writer                io.Writer
+	csv_writer            *csvdict.Writer
+	mu                    *sync.RWMutex
 }
 
 type ComparatorOptions struct {
-	LocationDatabaseURI   string
-	LocationParserURI     string
-	EmbeddingsDatabaseURI string
-	Writer                io.Writer
+	LocationDatabaseURI string
+	LocationParserURI   string
+	VectorDatabaseURI   string
+	Writer              io.Writer
 }
 
 // NewComparator returns a new `Comparator` instance. 'db' is the `database.Database` instance of existing records to compare
@@ -40,12 +40,14 @@ type ComparatorOptions struct {
 // is a `io.Writer` instance where match results will be written.
 func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, error) {
 
+	slog.Info("1")
 	location_db, err := location.NewDatabase(ctx, opts.LocationDatabaseURI)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create location database, %w", err)
 	}
 
+	slog.Info("2")
 	location_parser, err := parser.NewParser(ctx, opts.LocationParserURI)
 
 	if err != nil {
@@ -54,6 +56,7 @@ func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, e
 
 	mu := new(sync.RWMutex)
 
+	slog.Info("3")
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -64,13 +67,15 @@ func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, e
 		return nil, err
 	}
 
+	slog.Info("4")
+
 	c := &Comparator{
-		location_database:         location_db,
-		location_parser:           location_parser,
-		embeddings_database_cache: cache,
-		embeddings_database_uri:   opts.EmbeddingsDatabaseURI,
-		writer:                    opts.Writer,
-		mu:                        mu,
+		location_database:     location_db,
+		location_parser:       location_parser,
+		vector_database_cache: cache,
+		vector_database_uri:   opts.VectorDatabaseURI,
+		writer:                opts.Writer,
+		mu:                    mu,
 	}
 
 	return c, nil
@@ -96,27 +101,27 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 	geohash := loc.Geohash()
 
-	var embeddings_db database.Database
+	var vector_db vector.Database
 
-	v, exists := c.embeddings_database_cache.Get(geohash)
+	v, exists := c.vector_database_cache.Get(geohash)
 
 	if !exists {
 
-		db_uri := c.embeddings_database_uri
+		db_uri := c.vector_database_uri
 		db_uri = strings.Replace(db_uri, "{geohash}", geohash, 1)
 
-		new_db, err := database.NewDatabase(ctx, db_uri)
+		new_db, err := vector.NewDatabase(ctx, db_uri)
 
 		if err != nil {
 			return false, fmt.Errorf("Failed to create new database, %w", err)
 		}
 
-		c.embeddings_database_cache.Set(geohash, new_db, 1)
-		c.embeddings_database_cache.Wait()
+		c.vector_database_cache.Set(geohash, new_db, 1)
+		c.vector_database_cache.Wait()
 
-		embeddings_db = new_db
+		vector_db = new_db
 	} else {
-		embeddings_db = v.(database.Database)
+		vector_db = v.(vector.Database)
 	}
 
 	count := int32(0)
@@ -125,7 +130,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 	geohash_cb := func(ctx context.Context, loc *location.Location) error {
 
 		// slog.Info("Add", "geohash", geohash, "loc", loc)
-		err := embeddings_db.Add(ctx, loc)
+		err := vector_db.Add(ctx, loc)
 
 		if err != nil {
 			return fmt.Errorf("Failed to add record, %w", err)
@@ -157,7 +162,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 	*/
 
-	results, err := embeddings_db.Query(ctx, loc)
+	results, err := vector_db.Query(ctx, loc)
 
 	if err != nil {
 		slog.Error("Failed to query", "geohash", geohash, "count", atomic.LoadInt32(&count), "error", err)
