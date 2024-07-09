@@ -28,26 +28,28 @@ type Comparator struct {
 	mu                    *sync.RWMutex
 }
 
+// ComparatorOptions is a struct containing configuration options used to create a new `Comparator` instance.
 type ComparatorOptions struct {
+	// LocationDatabaseURI is the URI used to create a (location) `Database` instance of `Location` instances to compare against.
 	LocationDatabaseURI string
-	LocationParserURI   string
-	VectorDatabaseURI   string
-	Writer              io.Writer
+	// LocationParseURI is the URI used to create a (location) `Parser` instance to derive a `Location` instance from a byte string.
+	LocationParserURI string
+	// VectorDatabaseURI is the URI used to create `vector.Database` instance used to compare `Location` instances.
+	VectorDatabaseURI string
+	// Writer is the `io.Writer` instance where CSV rows will be written to.
+	Writer io.Writer
 }
 
-// NewComparator returns a new `Comparator` instance. 'db' is the `database.Database` instance of existing records to compare
-// locations against, 'prsr' is the `parser.Parser` instance to convert a location in to a `parser.Location` instance and `wr'
-// is a `io.Writer` instance where match results will be written.
+// NewComparator returns a new `Comparator` instance which wraps all the logic of comparing the embeddings
+// for a given `Location` instance against a database of `Location` instances and emit matches as CSV rows.
 func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, error) {
 
-	slog.Info("1")
 	location_db, err := location.NewDatabase(ctx, opts.LocationDatabaseURI)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create location database, %w", err)
 	}
 
-	slog.Info("2")
 	location_parser, err := parser.NewParser(ctx, opts.LocationParserURI)
 
 	if err != nil {
@@ -56,7 +58,6 @@ func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, e
 
 	mu := new(sync.RWMutex)
 
-	slog.Info("3")
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -64,10 +65,8 @@ func NewComparator(ctx context.Context, opts *ComparatorOptions) (*Comparator, e
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create vector database cache, %w", err)
 	}
-
-	slog.Info("4")
 
 	c := &Comparator{
 		location_database:     location_db,
@@ -93,8 +92,6 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 	if err != nil {
 		return is_match, fmt.Errorf("Failed to parse feature, %w", err)
 	}
-
-	// START OF new new ....
 
 	// Create an in-memory database. This is predicated on the assumption
 	// of a limited and manageable number of matches for any given geohash

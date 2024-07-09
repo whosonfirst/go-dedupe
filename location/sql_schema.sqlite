@@ -1,0 +1,7 @@
+CREATE TABLE locations (
+       id TEXT PRIMARY KEY,
+       geohash TEXT,
+       body TEXT
+);
+
+CREATE UNIQUE INDEX `locations_by_geohash` ON `locations` (`geohash`);

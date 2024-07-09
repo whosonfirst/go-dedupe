@@ -12,6 +12,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.4.1
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/json-iterator/go v1.1.12
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mmcloughlin/geohash v0.10.0
 	github.com/ollama/ollama v0.2.1
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0

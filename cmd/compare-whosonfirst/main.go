@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"os"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	_ "github.com/whosonfirst/go-dedupe/whosonfirst"

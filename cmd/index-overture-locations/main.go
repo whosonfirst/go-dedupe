@@ -13,6 +13,7 @@ import (
 
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/location"
