@@ -40,7 +40,7 @@ func main() {
 
 	flag.StringVar(&iterator_uri, "iterator-uri", "repo://", "...")
 
-	flag.Float64Var(&threshold, "threshold", 0.75, "...")
+	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 	flag.Parse()
 
 	uris := flag.Args()
