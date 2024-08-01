@@ -11,6 +11,7 @@ require (
 	github.com/aaronland/gocloud-blob v0.0.17
 	github.com/asg017/sqlite-vec-go-bindings v0.1.0
 	github.com/blevesearch/bleve/v2 v2.4.1
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-sqlite3 v1.14.22

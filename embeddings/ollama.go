@@ -2,7 +2,6 @@ package embeddings
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -100,5 +99,18 @@ func (e *OllamaEmbedder) Embeddings(ctx context.Context, content string) ([]floa
 // TBD...
 
 func (e *OllamaEmbedder) Embeddings32(ctx context.Context, content string) ([]float32, error) {
-	return nil, fmt.Errorf("Not implemented")
+
+	e64, err := e.Embeddings(ctx, content)
+
+	if err != nil {
+		return nil, err
+	}
+
+	e32 := make([]float32, len(e64))
+
+	for idx, v := range e64 {
+		e32[idx] = float32(v)
+	}
+
+	return e32, nil
 }

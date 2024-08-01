@@ -15,7 +15,8 @@ func TestSQLiteDatabase(t *testing.T) {
 
 	q := url.Values{}
 	q.Set("dsn", "test.db")
-	q.Set("embedder-uri", "ollama://")
+	q.Set("embedder-uri", "ollama://?model=llama3.1")
+	q.Set("dimensions", "4096")
 
 	u := url.URL{}
 	u.Scheme = "sqlite"

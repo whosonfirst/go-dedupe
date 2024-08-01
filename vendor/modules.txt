@@ -230,6 +230,9 @@ github.com/blevesearch/zapx/v15
 # github.com/blevesearch/zapx/v16 v16.1.4
 ## explicit; go 1.20
 github.com/blevesearch/zapx/v16
+# github.com/bwmarrin/snowflake v0.3.0
+## explicit
+github.com/bwmarrin/snowflake
 # github.com/cenkalti/backoff/v4 v4.3.0
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
