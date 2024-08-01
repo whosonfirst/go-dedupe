@@ -32,18 +32,25 @@ func main() {
 	var is_bzipped bool
 
 	var start_after int
-
+	var verbose bool
+	
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
 	flag.StringVar(&location_parser_uri, "location-parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 	flag.IntVar(&start_after, "start-after", 0, "...")
-
+	flag.BoolVar(&verbose, "verbose", false, "...")
+	
 	flag.Parse()
 
 	uris := flag.Args()
 
+	if verbose {
+                slog.SetLogLoggerLevel(slog.LevelDebug)
+                slog.Debug("Verbose logging enabled")
+	}
+	
 	ctx := context.Background()
 
 	db, err := location.NewDatabase(ctx, location_database_uri)

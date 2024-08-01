@@ -36,7 +36,8 @@ func main() {
 	// var is_bzipped bool
 
 	var threshold float64
-
+	var verbose bool
+	
 	flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	flag.StringVar(&location_database_uri, "location-database-uri", "", "...")
@@ -49,9 +50,16 @@ func main() {
 	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 
 	flag.IntVar(&workers, "workers", 50, "...")
+	flag.BoolVar(&verbose, "verbose", false, "...")	
 	flag.Parse()
 
 	uris := flag.Args()
+
+
+	if verbose {
+                slog.SetLogLoggerLevel(slog.LevelDebug)
+                slog.Debug("Verbose logging enabled")
+	}
 
 	ctx := context.Background()
 

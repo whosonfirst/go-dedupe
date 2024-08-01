@@ -31,13 +31,13 @@ type SQLiteDatabase struct {
 var snowflake_node *snowflake.Node
 
 func init() {
+	
 	ctx := context.Background()
 	err := RegisterDatabase(ctx, "sqlite", NewSQLiteDatabase)
 
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {

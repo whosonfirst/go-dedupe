@@ -29,7 +29,8 @@ func main() {
 	var monitor_uri string
 	var bucket_uri string
 	var is_bzipped bool
-
+	var verbose bool
+	
 	var start_after int
 
 	//flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
@@ -39,11 +40,17 @@ func main() {
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 	flag.IntVar(&start_after, "start-after", 0, "...")
-
+	flag.BoolVar(&verbose, "verbose", false, "...")
+	
 	flag.Parse()
 
 	uris := flag.Args()
 
+	if verbose {
+                slog.SetLogLoggerLevel(slog.LevelDebug)
+                slog.Debug("Verbose logging enabled")
+	}
+	
 	ctx := context.Background()
 
 	db, err := vector.NewDatabase(ctx, vector_database_uri)
