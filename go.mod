@@ -1,6 +1,6 @@
 module github.com/whosonfirst/go-dedupe
 
-go 1.22.4
+go 1.22.5
 
 // This fixes a problem where io.Readers are not closed which results in filehandle exhaustion
 replace github.com/philippgille/chromem-go v0.6.0 => github.com/philippgille/chromem-go v0.0.0-20240602150210-34ba8797e203
@@ -9,6 +9,7 @@ require (
 	github.com/aaronland/go-jsonl v0.0.20
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.0.17
+	github.com/asg017/sqlite-vec-go-bindings v0.1.0
 	github.com/blevesearch/bleve/v2 v2.4.1
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/json-iterator/go v1.1.12
@@ -97,9 +98,10 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/api v0.169.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect

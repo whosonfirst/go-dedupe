@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
-
-	"log/slog"
 )
 
 // Collection represents a collection of documents.
@@ -365,8 +363,7 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
 	if nResults > len(c.documents) {
-		slog.Info("POO", "nresults", nResults, "count", len(c.documents))
-		// return nil, errors.New("nResults must be <= the number of documents in the collection")
+		return nil, errors.New("nResults must be <= the number of documents in the collection")
 	}
 
 	if len(c.documents) == 0 {
