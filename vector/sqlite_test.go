@@ -53,6 +53,8 @@ func TestSQLiteDatabase(t *testing.T) {
 
 	db_uri := u.String()
 
+	slog.Debug("Create new vector database", "uri", db_uri)
+	
 	db, err := NewDatabase(ctx, db_uri)
 
 	if err != nil {
