@@ -112,7 +112,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 	if !has_meta_table {
 
-		q := "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`)"
+		q := "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER, content TEXT); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`)"
 		slog.Debug(q)
 
 		_, err := vec_db.ExecContext(ctx, q)
@@ -176,13 +176,45 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 		return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
 	}
 
-	// TBD...
-	// UPSERT not implemented for virtual table "vec_items"
+	// START OF UPSERT not implemented for virtual table "vec_items"
 
-	_, err = db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v, v)
+	action := "insert"
 
-	if err != nil {
-		return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
+	q := "SELECT rowid FROM vec_items WHERE rowid = ?"
+	row := db.vec_db.QueryRowContext(ctx, q, snowflake_id)
+
+	var rowid int64
+	err = row.Scan(&rowid)
+
+	switch {
+	case err == sql.ErrNoRows:
+		// pass
+	case err != nil:
+		return fmt.Errorf("Failed to determine if rowid (%d) exists, %w", snowflake_id, err)
+	default:
+		action = "update"
+	}
+
+	// END OF UPSERT not implemented for virtual table "vec_items"
+
+	slog.Debug("Add embeddings", "id", loc.ID, "snowflake id", snowflake_id, "rowid", rowid, "action", action)
+
+	switch action {
+	case "update":
+
+		_, err = db.vec_db.ExecContext(ctx, "UPDATE vec_items SET embedding = ? WHERE rowid = ?", v, snowflake_id)
+
+		if err != nil {
+			return fmt.Errorf("Failed to update row for ID %s (%d), %w", id, snowflake_id, err)
+		}
+
+	default:
+
+		_, err := db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v)
+
+		if err != nil {
+			return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
+		}
 	}
 
 	return nil
@@ -215,7 +247,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 			return nil, fmt.Errorf("Failed to scan row, %w", err)
 		}
 
-		id, err := db.getLocationId(ctx, snowflake_id)
+		id, content, err := db.getLocationData(ctx, snowflake_id)
 
 		if err != nil {
 			return nil, err
@@ -223,10 +255,11 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 
 		r := &QueryResult{
 			ID:         id,
+			Content:    content,
 			Similarity: float32(distance),
 		}
 
-		slog.Info("Query result", "rowid", snowflake_id, "location id", id, "distance", distance)
+		slog.Debug("Query result", "rowid", snowflake_id, "location id", id, "content", content, "distance", distance)
 
 		results = append(results, r)
 	}
@@ -257,9 +290,9 @@ func (db *SQLiteDatabase) getSnowflakeId(ctx context.Context, loc *location.Loca
 		new_id := snowflake_node.Generate()
 		snowflake_id = new_id.Int64()
 
-		q := "INSERT INTO vec_meta (id, snowflake_id) VALUES(?, ?)"
+		q := "INSERT INTO vec_meta (id, snowflake_id, content) VALUES(?, ?, ?)"
 
-		_, err := db.vec_db.ExecContext(ctx, q, loc.ID, snowflake_id)
+		_, err := db.vec_db.ExecContext(ctx, q, loc.ID, snowflake_id, loc.String())
 
 		if err != nil {
 			return 0, fmt.Errorf("Failed to create entry for snowflake ID, %w", err)
@@ -274,20 +307,21 @@ func (db *SQLiteDatabase) getSnowflakeId(ctx context.Context, loc *location.Loca
 	}
 }
 
-func (db *SQLiteDatabase) getLocationId(ctx context.Context, snowflake_id int64) (string, error) {
+func (db *SQLiteDatabase) getLocationData(ctx context.Context, snowflake_id int64) (string, string, error) {
 
-	q := "SELECT id FROM vec_meta WHERE snowflake_id = ?"
+	q := "SELECT id, content FROM vec_meta WHERE snowflake_id = ?"
 	row := db.vec_db.QueryRowContext(ctx, q, snowflake_id)
 
 	var id string
+	var content string
 
-	err := row.Scan(&id)
+	err := row.Scan(&id, &content)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to retrieve location ID, %w", err)
+		return "", "", fmt.Errorf("Failed to retrieve location ID, %w", err)
 	}
 
-	return id, nil
+	return id, content, nil
 }
 
 func (db *SQLiteDatabase) embeddings(ctx context.Context, loc *location.Location) ([]byte, error) {

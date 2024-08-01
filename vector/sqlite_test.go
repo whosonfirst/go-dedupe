@@ -76,6 +76,13 @@ func TestSQLiteDatabase(t *testing.T) {
 		t.Fatalf("Failed to add location, %v", err)
 	}
 
+	// Add it a second time to make sure we can update
+	err = db.Add(ctx, loc)
+
+	if err != nil {
+		t.Fatalf("Failed to add location, %v", err)
+	}
+
 	r, err := db.Query(ctx, loc)
 
 	if err != nil {

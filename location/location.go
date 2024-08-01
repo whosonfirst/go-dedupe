@@ -68,8 +68,7 @@ func (loc *Location) Geohash() string {
 
 func (loc *Location) Embeddings32(ctx context.Context, embedder embeddings.Embedder) ([]float32, error) {
 
-	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
-
+	text := loc.String()
 	return embedder.Embeddings32(ctx, text)
 }
 
