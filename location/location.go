@@ -1,12 +1,14 @@
 package location
 
 import (
+	"context"
 	"fmt"
 	_ "log/slog"
 	"slices"
 
 	"github.com/mmcloughlin/geohash"
 	"github.com/paulmach/orb"
+	"github.com/whosonfirst/go-dedupe/embeddings"
 )
 
 var reserved_metadata_keys = []string{
@@ -62,6 +64,13 @@ func (loc *Location) Geohash() string {
 	lon := loc.Centroid[0]
 	lat := loc.Centroid[1]
 	return geohash.EncodeWithPrecision(lat, lon, 5)
+}
+
+func (loc *Location) Embeddings32(ctx context.Context, embedder embeddings.Embedder) ([]float32, error) {
+
+	text := fmt.Sprintf("%s, %s", loc.Name, loc.Address)
+
+	return embedder.Embeddings32(ctx, text)
 }
 
 // ReservedMetadataKeys returns the list of reserved metadata keys.
