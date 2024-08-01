@@ -1,5 +1,10 @@
 package vector
 
+// https://alexgarcia.xyz/blog/2024/sqlite-vec-stable-release/index.html
+// https://alexgarcia.xyz/sqlite-vec/go.html
+
+// https://github.com/asg017/sqlite-lembed
+
 import (
 	"context"
 	"database/sql"
@@ -170,12 +175,6 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 		return err
 	}
 
-	v, err := db.embeddings(ctx, loc)
-
-	if err != nil {
-		return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
-	}
-
 	// START OF UPSERT not implemented for virtual table "vec_items"
 
 	action := "insert"
@@ -192,7 +191,11 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 	case err != nil:
 		return fmt.Errorf("Failed to determine if rowid (%d) exists, %w", snowflake_id, err)
 	default:
+
+		// To do : Figure out how to signal this/...
+		
 		action = "update"
+		action = "skip"		
 	}
 
 	// END OF UPSERT not implemented for virtual table "vec_items"
@@ -200,21 +203,35 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 	slog.Debug("Add embeddings", "id", loc.ID, "snowflake id", snowflake_id, "rowid", rowid, "action", action)
 
 	switch action {
-	case "update":
+	case "skip":
+		return nil
+	case "insert", "update":
 
-		_, err = db.vec_db.ExecContext(ctx, "UPDATE vec_items SET embedding = ? WHERE rowid = ?", v, snowflake_id)
-
+		v, err := db.embeddings(ctx, loc)
+		
 		if err != nil {
-			return fmt.Errorf("Failed to update row for ID %s (%d), %w", id, snowflake_id, err)
+			return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
 		}
 
+		switch action {
+		case "update":
+			_, err = db.vec_db.ExecContext(ctx, "UPDATE vec_items SET embedding = ? WHERE rowid = ?", v, snowflake_id)
+
+			if err != nil {
+				return fmt.Errorf("Failed to update row for ID %s (%d), %w", id, snowflake_id, err)
+			}
+			
+		default:
+			
+			_, err := db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v)
+			
+			if err != nil {
+				return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
+			}
+		}
+			
 	default:
-
-		_, err := db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v)
-
-		if err != nil {
-			return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
-		}
+		return fmt.Errorf("Invalid or unsupported action")
 	}
 
 	return nil

@@ -16,6 +16,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mmcloughlin/geohash v0.10.0
+	github.com/neuml/txtai.go v1.0.0
 	github.com/ollama/ollama v0.2.1
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
 	github.com/paulmach/orb v0.11.1
@@ -76,6 +77,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/go-resty/resty/v2 v2.3.0 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
