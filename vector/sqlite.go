@@ -16,9 +16,11 @@ import (
 )
 
 type SQLiteDatabase struct {
-	vec_db     *sql.DB
-	embedder   embeddings.Embedder
-	dimensions int
+	vec_db       *sql.DB
+	embedder     embeddings.Embedder
+	dimensions   int
+	max_distance float32
+	max_results  int
 }
 
 var snowflake_node *snowflake.Node
@@ -45,16 +47,40 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 	dsn := q.Get("dsn")
 
 	dimensions := 768
+	max_distance := float32(5.0)
+	max_results := 10
 
 	if q.Has("dimensions") {
 
 		v, err := strconv.Atoi(q.Get("dimensions"))
 
 		if err != nil {
-			return nil, fmt.Errorf("Invalid ?dimensions= paramter, %w", err)
+			return nil, fmt.Errorf("Invalid ?dimensions= parameter, %w", err)
 		}
 
 		dimensions = v
+	}
+
+	if q.Has("max-distance") {
+
+		v, err := strconv.ParseFloat(q.Get("max-distance"), 64)
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid ?max-distance= parameter, %w", err)
+		}
+
+		max_distance = float32(v)
+	}
+
+	if q.Has("max-results") {
+
+		v, err := strconv.Atoi(q.Get("max-results"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid ?max-results= parameter, %w", err)
+		}
+
+		max_results = v
 	}
 
 	if snowflake_node == nil {
@@ -124,9 +150,11 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 	}
 
 	db := &SQLiteDatabase{
-		vec_db:     vec_db,
-		embedder:   embdr,
-		dimensions: dimensions,
+		vec_db:       vec_db,
+		embedder:     embdr,
+		dimensions:   dimensions,
+		max_distance: max_distance,
+		max_results:  max_results,
 	}
 
 	return db, nil
@@ -148,7 +176,10 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 		return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
 	}
 
-	_, err = db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v)
+	// TBD...
+	// UPSERT not implemented for virtual table "vec_items"
+
+	_, err = db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v, v)
 
 	if err != nil {
 		return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
@@ -167,7 +198,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 		return nil, fmt.Errorf("Failed to serialize query, %w", err)
 	}
 
-	rows, err := db.vec_db.QueryContext(ctx, `SELECT rowid, distance FROM vec_items WHERE embedding MATCH ? ORDER BY distance`, query)
+	rows, err := db.vec_db.QueryContext(ctx, `SELECT rowid, distance FROM vec_items WHERE embedding MATCH ? AND distance <= ? ORDER BY distance LIMIT ?`, query, db.max_distance, db.max_results)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to execute query, %w", err)
@@ -195,8 +226,9 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 			Similarity: float32(distance),
 		}
 
+		slog.Info("Query result", "rowid", snowflake_id, "location id", id, "distance", distance)
+
 		results = append(results, r)
-		// fmt.Printf("rowid=%d, distance=%f\n", rowid, distance)
 	}
 
 	return results, nil
