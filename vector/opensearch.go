@@ -258,7 +258,7 @@ func (db *OpensearchDatabase) Add(ctx context.Context, loc *location.Location) e
 
 		if rsp.IsError() {
 			body, _ := io.ReadAll(rsp.Body)
-			return fmt.Errorf("Failed to index document, %v", rsp.Status(), "body", string(body))
+			return fmt.Errorf("Failed to index document, %v, %s", rsp.Status(), string(body))
 		}
 
 		return nil

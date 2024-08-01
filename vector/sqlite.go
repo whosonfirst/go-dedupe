@@ -43,6 +43,25 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to open database connection, %w", err)
 	}
 
+	has_table, err := hasTable(ctx, vec_db, "vec_items")
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to determine if vec_items table exists, %w", err)
+	}
+
+	if !has_table {
+
+		vectors := 768
+
+		q := fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", vectors)
+
+		_, err := vec_db.Exec(q)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create vec_items table, %w", err)
+		}
+	}
+
 	embedder_uri := q.Get("embedder-uri")
 
 	embdr, err := embeddings.NewEmbedder(ctx, embedder_uri)
@@ -63,22 +82,16 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 
 	id := loc.ID
 
-	q, err := loc.Embeddings32(ctx, db.embedder)
+	v, err := db.embeddings(ctx, loc)
 
 	if err != nil {
-		return fmt.Errorf("Failed to derive query for location, %w", err)
-	}
-
-	v, err := sqlite_vec.SerializeFloat32(q)
-
-	if err != nil {
-		return fmt.Errorf("Failed to serialize floats for ID %d, %w", id, err)
+		return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
 	}
 
 	_, err = db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", id, v)
 
 	if err != nil {
-		return fmt.Errorf("Failed to insert row for ID %d, %w", id, err)
+		return fmt.Errorf("Failed to insert row for ID %s, %w", id, err)
 	}
 
 	return nil
@@ -88,13 +101,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 
 	results := make([]*QueryResult, 0)
 
-	q, err := loc.Embeddings32(ctx, db.embedder)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to derive query for location, %w", err)
-	}
-
-	query, err := sqlite_vec.SerializeFloat32(q)
+	query, err := db.embeddings(ctx, loc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to serialize query, %w", err)
@@ -108,16 +115,22 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 
 	for rows.Next() {
 
-		var rowid int64
+		var id string
 		var distance float64
 
-		err = rows.Scan(&rowid, &distance)
+		err = rows.Scan(&id, &distance)
 
 		if err != nil {
 			return nil, fmt.Errorf("Failed to scan row, %w", err)
 		}
 
-		fmt.Printf("rowid=%d, distance=%f\n", rowid, distance)
+		r := &QueryResult{
+			ID:         id,
+			Similarity: float32(distance),
+		}
+
+		results = append(results, r)
+		// fmt.Printf("rowid=%d, distance=%f\n", rowid, distance)
 	}
 
 	return results, nil
@@ -129,4 +142,53 @@ func (db *SQLiteDatabase) Flush(ctx context.Context) error {
 
 func (db *SQLiteDatabase) Close(ctx context.Context) error {
 	return db.vec_db.Close()
+}
+
+func (db *SQLiteDatabase) embeddings(ctx context.Context, loc *location.Location) ([]byte, error) {
+
+	q, err := loc.Embeddings32(ctx, db.embedder)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive query for location, %w", err)
+	}
+
+	query, err := sqlite_vec.SerializeFloat32(q)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to serialize query, %w", err)
+	}
+
+	return query, nil
+}
+
+func hasTable(ctx context.Context, db *sql.DB, table_name string) (bool, error) {
+
+	has_table := false
+
+	sql := "SELECT name FROM sqlite_master WHERE type='table'"
+
+	rows, err := db.QueryContext(ctx, sql)
+
+	if err != nil {
+		return false, fmt.Errorf("Failed to query sqlite_master, %w", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var name string
+		err := rows.Scan(&name)
+
+		if err != nil {
+			return false, fmt.Errorf("Failed scan table name, %w", err)
+		}
+
+		if name == table_name {
+			has_table = true
+			break
+		}
+	}
+
+	return has_table, nil
 }
