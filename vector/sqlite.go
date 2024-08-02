@@ -26,12 +26,15 @@ type SQLiteDatabase struct {
 	dimensions   int
 	max_distance float32
 	max_results  int
+	compression  string
 }
 
 var snowflake_node *snowflake.Node
 
+const matroyshka_dimensions int = 512
+
 func init() {
-	
+
 	ctx := context.Background()
 	err := RegisterDatabase(ctx, "sqlite", NewSQLiteDatabase)
 
@@ -54,6 +57,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 	dimensions := 768
 	max_distance := float32(5.0)
 	max_results := 10
+	compression := "none"
 
 	if q.Has("dimensions") {
 
@@ -86,6 +90,10 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		}
 
 		max_results = v
+	}
+
+	if q.Has("compression") {
+		compression = q.Get("compression")
 	}
 
 	if snowflake_node == nil {
@@ -136,7 +144,19 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 	if !has_vec_table {
 
-		q := fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", dimensions)
+		var q string
+
+		switch compression {
+		case "quantize":
+			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding bit[%d])", dimensions)
+		case "matroyshka":
+			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", matroyshka_dimensions)
+		case "none":
+			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", dimensions)
+		default:
+			return nil, fmt.Errorf("Invalid or unsupported compression")
+		}
+
 		slog.Debug(q)
 
 		_, err := vec_db.ExecContext(ctx, q)
@@ -160,6 +180,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		dimensions:   dimensions,
 		max_distance: max_distance,
 		max_results:  max_results,
+		compression:  compression,
 	}
 
 	return db, nil
@@ -193,9 +214,9 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 	default:
 
 		// To do : Figure out how to signal this/...
-		
+
 		action = "update"
-		action = "skip"		
+		action = "skip"
 	}
 
 	// END OF UPSERT not implemented for virtual table "vec_items"
@@ -208,28 +229,59 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 	case "insert", "update":
 
 		v, err := db.embeddings(ctx, loc)
-		
+
 		if err != nil {
 			return fmt.Errorf("Failed to serialize floats for ID %s, %w", id, err)
 		}
 
 		switch action {
 		case "update":
-			_, err = db.vec_db.ExecContext(ctx, "UPDATE vec_items SET embedding = ? WHERE rowid = ?", v, snowflake_id)
+
+			var q string
+
+			switch db.compression {
+			case "quantize":
+				q = "UPDATE vec_items SET vec_quantize_binary(embedding) = ? WHERE rowid = ?"
+			case "matroyshka":
+				q = fmt.Sprintf("UPDATE vec_items SET vec_normalize(vec_slice(eembedding, 0, %d)) = ? WHERE rowid = ?", matroyshka_dimensions)
+			case "none":
+				q = "UPDATE vec_items SET embedding = ? WHERE rowid = ?"
+			default:
+				return fmt.Errorf("Invalid or unsupported compression")
+			}
+
+			slog.Debug(q)
+
+			_, err = db.vec_db.ExecContext(ctx, q, v, snowflake_id)
 
 			if err != nil {
 				return fmt.Errorf("Failed to update row for ID %s (%d), %w", id, snowflake_id, err)
 			}
-			
+
 		default:
-			
-			_, err := db.vec_db.ExecContext(ctx, "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)", snowflake_id, v)
-			
+
+			var q string
+
+			switch db.compression {
+			case "quantize":
+				q = "INSERT INTO vec_items(rowid, embedding) VALUES (?, vec_quantize_binary(?))"
+			case "matroyshka":
+				q = fmt.Sprintf("INSERT INTO vec_items(rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", matroyshka_dimensions)
+			case "none":
+				q = "INSERT INTO vec_items(rowid, embedding) VALUES (?, ?)"
+			default:
+				return fmt.Errorf("Invalid or unsupported compression")
+			}
+
+			slog.Debug(q)
+
+			_, err := db.vec_db.ExecContext(ctx, q, snowflake_id, v)
+
 			if err != nil {
 				return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
 			}
 		}
-			
+
 	default:
 		return fmt.Errorf("Invalid or unsupported action")
 	}
@@ -247,7 +299,24 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 		return nil, fmt.Errorf("Failed to serialize query, %w", err)
 	}
 
-	rows, err := db.vec_db.QueryContext(ctx, `SELECT rowid, distance FROM vec_items WHERE embedding MATCH ? AND distance <= ? ORDER BY distance LIMIT ?`, query, db.max_distance, db.max_results)
+	var q string
+
+	switch db.compression {
+	case "quantize":
+		q = "SELECT rowid, distance FROM vec_items WHERE embedding MATCH vec_quantize_binary(?)"
+	case "matroyshka":
+		q = fmt.Sprintf("SELECT rowid, distance FROM vec_items WHERE embedding MATCH vec_normalize(vec_slice(?, 0, %d))", matroyshka_dimensions)
+	case "none":
+		q = "SELECT rowid, distance FROM vec_items WHERE embedding MATCH ?"
+	default:
+		return nil, fmt.Errorf("Invalid or unsupported compression")
+	}
+
+	q = fmt.Sprintf("%s AND distance <= ? ORDER BY distance LIMIT ?", q)
+
+	slog.Debug("Query", "statement", q, "location", loc, "distance", db.max_distance, "limit", db.max_results, "compression", db.compression)
+
+	rows, err := db.vec_db.QueryContext(ctx, q, query, db.max_distance, db.max_results)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to execute query, %w", err)
@@ -276,7 +345,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 			Similarity: float32(distance),
 		}
 
-		slog.Debug("Query result", "rowid", snowflake_id, "location id", id, "content", content, "distance", distance)
+		slog.Debug("Result", "rowid", snowflake_id, "location id", id, "content", content, "distance", distance)
 
 		results = append(results, r)
 	}
