@@ -33,7 +33,7 @@ func TestSQLiteDatabase(t *testing.T) {
 		settings{
 			compression:      "quantize",
 			expected_results: []int{1, 0, 0, 0},
-			max_distance:     4,
+			max_distance:     1,
 		},
 		settings{
 			compression:      "matroyshka",

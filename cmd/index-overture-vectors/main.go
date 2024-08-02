@@ -34,7 +34,7 @@ func main() {
 	var start_after int
 
 	//flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://venues/usr/local/data/venues.db?model=mxbai-embed-large", "...")
-	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=/usr/local/data/overture/vectors.db&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024", "...")	
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=/usr/local/data/overture/vectors-m.db&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=matroyshka", "...")	
 	flag.StringVar(&location_parser_uri, "location-parser-uri", "overtureplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
@@ -84,7 +84,7 @@ func main() {
 	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
-	max_workers := 20
+	max_workers := 100
 	throttle := make(chan bool, max_workers)
 
 	for i := 0; i < max_workers; i++ {

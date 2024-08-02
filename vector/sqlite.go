@@ -21,12 +21,20 @@ import (
 )
 
 type SQLiteDatabase struct {
+	// The underlying SQLite database used to store and query embeddings.
 	vec_db       *sql.DB
+	// The whosonfirst/go-dedupe/embeddings instance to use for deriving embeddings.
 	embedder     embeddings.Embedder
+	// The number of dimensions for embeddings
 	dimensions   int
+	// The maximum distance between query input and embeddings when matching
 	max_distance float32
+	// The maximum number of results for queries
 	max_results  int
+	// The compression type to use for embeddings. Valid options are: quantize, matroyshka, none (default)
 	compression  string
+	// If true that existing records are re-indexed. If not, they are skipped and left as-is.
+	refresh bool
 }
 
 var snowflake_node *snowflake.Node
@@ -58,7 +66,8 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 	max_distance := float32(5.0)
 	max_results := 10
 	compression := "none"
-
+	refresh := false
+	
 	if q.Has("dimensions") {
 
 		v, err := strconv.Atoi(q.Get("dimensions"))
@@ -96,6 +105,17 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		compression = q.Get("compression")
 	}
 
+	if q.Has("refresh"){
+
+		v, err := strconv.ParseBool(q.Get("refresh"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid ?refresh= parameter, %w", err)
+		}
+
+		refresh = v
+	}
+	
 	if snowflake_node == nil {
 
 		n, err := snowflake.NewNode(1)
@@ -181,6 +201,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		max_distance: max_distance,
 		max_results:  max_results,
 		compression:  compression,
+		refresh: refresh,
 	}
 
 	return db, nil
@@ -213,10 +234,11 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 		return fmt.Errorf("Failed to determine if rowid (%d) exists, %w", snowflake_id, err)
 	default:
 
-		// To do : Figure out how to signal this/...
-
-		action = "update"
 		action = "skip"
+		
+		if db.refresh {
+			action = "update"
+		}
 	}
 
 	// END OF UPSERT not implemented for virtual table "vec_items"
