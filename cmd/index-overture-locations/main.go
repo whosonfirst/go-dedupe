@@ -1,6 +1,6 @@
 package main
 
-// go run cmd/index-overture-venues/main.go /usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
+// go run cmd/index-overture-locations/main.go -location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture/overture-locations.db' /usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
 
 import (
 	"context"

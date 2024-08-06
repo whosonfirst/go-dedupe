@@ -12,7 +12,8 @@ import (
 	"log/slog"
 	"net/url"
 	"strconv"
-
+	"time"
+	
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/bwmarrin/snowflake"
 	_ "github.com/mattn/go-sqlite3"
@@ -338,12 +339,16 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 
 	slog.Debug("Query", "statement", q, "location", loc, "distance", db.max_distance, "limit", db.max_results, "compression", db.compression)
 
+	t1 := time.Now()
+	
 	rows, err := db.vec_db.QueryContext(ctx, q, query, db.max_distance, db.max_results)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to execute query, %w", err)
 	}
 
+	slog.Debug("Query context", "time", time.Since(t1))
+	
 	for rows.Next() {
 
 		var snowflake_id int64
@@ -355,6 +360,8 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 			return nil, fmt.Errorf("Failed to scan row, %w", err)
 		}
 
+		slog.Debug("Query scan", "id", snowflake_id, "time", time.Since(t1))
+		
 		id, content, err := db.getLocationData(ctx, snowflake_id)
 
 		if err != nil {
@@ -372,6 +379,8 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 		results = append(results, r)
 	}
 
+	slog.Debug("Query rows", "time", time.Since(t1))
+	
 	return results, nil
 }
 
