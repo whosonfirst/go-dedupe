@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
-	_ "time"
+	"time"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/sfomuseum/go-csvdict"
@@ -104,7 +105,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 	if !exists {
 
-		db_uri := c.vector_database_uri
+		db_uri, _ := url.QueryUnescape(c.vector_database_uri)		
 		db_uri = strings.Replace(db_uri, "{geohash}", geohash, 1)
 
 		new_db, err := vector.NewDatabase(ctx, db_uri)
@@ -122,11 +123,11 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 	}
 
 	count := int32(0)
-	// t1 := time.Now()
+	t1 := time.Now()
 
 	geohash_cb := func(ctx context.Context, loc *location.Location) error {
 
-		// slog.Info("Add", "geohash", geohash, "loc", loc)
+		slog.Debug("Add", "geohash", geohash, "loc", loc)
 		err := vector_db.Add(ctx, loc)
 
 		if err != nil {
@@ -147,17 +148,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 		return is_match, nil
 	}
 
-	// slog.Info("Candidates", "geohash", geohash, "count", atomic.LoadInt32(&count), "time", time.Since(t1))
-
-	/*
-
-			Do not understand these errors:
-
-		2024/07/05 13:21:29 ERROR Failed to query geohash=u0myt count=3 error="Failed to query, nResults must be <= the number of documents in the collection"
-		2024/07/05 13:21:29 WARN Failed to compare feature path=/usr/local/data/alltheplaces/aldi_sud_de.geojson error="Failed to query feature, Failed to query, nResults must be <= the number of documents in the collection"
-		2024/07/05 13:22:11 INFO Matches path=/usr/local/data/alltheplaces/aldi_sud_de.geojson features=2019 matches=430 "total features"=48678 "total matches"=1568
-
-	*/
+	slog.Debug("Candidates", "geohash", geohash, "count", atomic.LoadInt32(&count), "time", time.Since(t1))
 
 	results, err := vector_db.Query(ctx, loc)
 
@@ -172,11 +163,11 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 	for _, qr := range results {
 
-		// slog.Info("Match", "id", "similarity", qr.Similarity, "wof", loc.Content(), "ov", qr.Content)
+		slog.Info("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
 		if float64(qr.Similarity) >= threshold {
 
-			// slog.Info("Match", "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
+			slog.Info("Match", "geohash", geohash, "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
 			is_match = true
 
 			row := map[string]string{
@@ -233,4 +224,9 @@ func (c *Comparator) Flush() {
 	if c.csv_writer != nil {
 		c.csv_writer.Flush()
 	}
+}
+
+func (c *Comparator) Close() {
+
+	// vector_database_cache
 }

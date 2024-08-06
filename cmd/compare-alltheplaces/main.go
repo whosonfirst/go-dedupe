@@ -26,6 +26,9 @@ import (
 
 func main() {
 
+	// var embedder_uri string
+	// var vector_database_db string
+	
 	var vector_database_uri string
 	var location_database_uri string
 	var location_parser_uri string
@@ -40,7 +43,11 @@ func main() {
 	
 	// flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
-	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Fusr%2Flocal%2Fdata%2Foverture%2Foverture-embeddings.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=matroyshka", "...")
+	// flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Ftmp%2F%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=matroyshka", "...")
+
+	
+
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Ftmp%2F%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=0.75&max-results=10&dimensions=1024&compression=matroyshka", "...")
 	
 	flag.StringVar(&location_database_uri, "location-database-uri", "sql://sqlite3?dsn=/usr/local/data/overture/overture-locations.db", "...")
 	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
@@ -51,8 +58,8 @@ func main() {
 
 	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 
-	flag.IntVar(&workers, "workers", 4, "...")
-	flag.BoolVar(&verbose, "verbose", true, "...")	
+	flag.IntVar(&workers, "workers", 10, "...")
+	flag.BoolVar(&verbose, "verbose", false, "...")	
 	flag.Parse()
 
 	uris := flag.Args()
@@ -87,7 +94,8 @@ func main() {
 	}
 
 	defer cmp.Flush()
-
+	defer cmp.Close()
+	
 	monitor, err := timings.NewMonitor(ctx, monitor_uri)
 
 	if err != nil {

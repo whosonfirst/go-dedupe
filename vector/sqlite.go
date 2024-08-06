@@ -146,7 +146,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 	if !has_meta_table {
 
-		q := "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER, content TEXT); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`)"
+		q := "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER, content TEXT); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`);"
 		slog.Debug(q)
 
 		_, err := vec_db.ExecContext(ctx, q)
@@ -154,7 +154,6 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to create vec_meta table, %w", err)
 		}
-
 	}
 
 	has_vec_table, err := hasTable(ctx, vec_db, "vec_items")
