@@ -56,7 +56,8 @@ func NewComparator2(ctx context.Context, opts *Comparator2Options) (*Comparator2
 		return nil, fmt.Errorf("Failed to create location database, %w", err)
 	}
 
-	workers := runtime.NumCPU() * 2
+	workers := runtime.NumCPU() * 4
+	slog.Info("WORKERS", "workers", workers)
 
 	mu := new(sync.RWMutex)
 
@@ -165,6 +166,7 @@ func (c *Comparator2) Compare(ctx context.Context, threshold float64) error {
 					slog.Info("Match", "geohash", geohash, "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
 
 					row := map[string]string{
+						"geohash":    geohash,
 						"source_id":  qr.ID,
 						"target_id":  loc.ID,
 						"source":     qr.Content,

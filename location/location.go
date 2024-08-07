@@ -63,9 +63,14 @@ func (loc *Location) Metadata() map[string]string {
 
 // Geohash returns the geohash with a precision of 5 for the location.
 func (loc *Location) Geohash() string {
+	return loc.GeohashWithPrecision(GEOHASH_PRECISION)
+}
+
+// Geohash returns the geohash with a precision of 'precision' for the location.
+func (loc *Location) GeohashWithPrecision(precision uint) string {
 	lon := loc.Centroid[0]
 	lat := loc.Centroid[1]
-	return geohash.EncodeWithPrecision(lat, lon, GEOHASH_PRECISION)
+	return geohash.EncodeWithPrecision(lat, lon, precision)
 }
 
 func (loc *Location) Embeddings32(ctx context.Context, embedder embeddings.Embedder) ([]float32, error) {
