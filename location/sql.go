@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "log/slog"
+	"log/slog"
 	"net/url"
 )
 
@@ -153,6 +153,51 @@ func (db *SQLDatabase) Close(ctx context.Context) error {
 }
 
 func (db *SQLDatabase) configureSQLite(ctx context.Context) error {
+
+	table_name := "locations"
+	has_table := false
+
+	sql := "SELECT name FROM sqlite_master WHERE type='table'"
+
+	rows, err := db.conn.QueryContext(ctx, sql)
+
+	if err != nil {
+		return fmt.Errorf("Failed to query sqlite_master, %w", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var name string
+		err := rows.Scan(&name)
+
+		if err != nil {
+			return fmt.Errorf("Failed scan table name, %w", err)
+		}
+
+		if name == table_name {
+			has_table = true
+			break
+		}
+	}
+
+	//
+
+	if !has_table {
+
+		q := "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE UNIQUE INDEX `locations_by_geohash` ON `locations` (`geohash`);"
+		slog.Debug(q)
+
+		_, err := db.conn.ExecContext(ctx, q)
+
+		if err != nil {
+			return fmt.Errorf("Failed to create %s table, %w", table_name, err)
+		}
+
+	}
+
+	//
 
 	pragma := []string{
 		"PRAGMA JOURNAL_MODE=OFF",

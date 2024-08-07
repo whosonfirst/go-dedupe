@@ -167,9 +167,10 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 		slog.Info("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
-		if float64(qr.Similarity) >= threshold {
+		// Make this a toggle...
+		if float64(qr.Similarity) == 0 || float64(qr.Similarity) <= threshold {
 
-			slog.Info("Match", "geohash", geohash, "similarity", qr.Similarity, "atp", loc.String(), "ov", qr.Content)
+			slog.Info("Match", "geohash", geohash, "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
 			is_match = true
 
 			row := map[string]string{

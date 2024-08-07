@@ -61,7 +61,7 @@ func main() {
 	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
 	// flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 
-	flag.Float64Var(&threshold, "threshold", 0.95, "...")
+	flag.Float64Var(&threshold, "threshold", 4.0, "...")
 
 	flag.IntVar(&workers, "workers", 10, "...")
 	flag.BoolVar(&verbose, "verbose", false, "...")

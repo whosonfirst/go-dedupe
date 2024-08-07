@@ -1,6 +1,6 @@
 package main
 
-// go run cmd/index-overture-locations/main.go -location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture/overture-locations.db' /usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
+// go run cmd/index-alltheplaces-locations/main.go -location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture/alltheplaces-locations.db' /usr/local/data/alltheplaces/*.geojson
 
 import (
 	"context"
@@ -110,33 +110,39 @@ func main() {
 
 			wg.Add(1)
 
-			body, err := f.MarshalJSON()
+			go func(f *geojson.Feature) {
 
-			if err != nil {
-				slog.Error("Failed to marshal record", "error", err)
-				continue
-			}
+				defer func() {
+					wg.Done()
+					throttle <- true
+				}()
 
-			loc, err := prsr.Parse(ctx, body)
+				body, err := f.MarshalJSON()
 
-			if dedupe.IsInvalidRecordError(err) {
-				slog.Warn("Invalid record")
-				continue
-			} else if err != nil {
-				slog.Error("Failed to parse record", "error", err)
-				continue
-				// return fmt.Errorf("Failed to parse body, %w", err)
-			}
+				if err != nil {
+					slog.Error("Failed to marshal record", "error", err)
+					return
+				}
 
-			err = db.AddLocation(ctx, loc)
+				loc, err := prsr.Parse(ctx, body)
 
-			if err != nil {
-				slog.Error("Failed to add record", "error", err)
-				continue
-				// return err
-			}
+				if dedupe.IsInvalidRecordError(err) {
+					slog.Warn("Invalid record")
+					return
+				} else if err != nil {
+					slog.Error("Failed to parse record", "error", err)
+					return
+				}
 
-			monitor.Signal(ctx)
+				err = db.AddLocation(ctx, loc)
+
+				if err != nil {
+					slog.Error("Failed to add record", "error", err)
+					return
+				}
+
+				monitor.Signal(ctx)
+			}(f)
 		}
 	}
 
