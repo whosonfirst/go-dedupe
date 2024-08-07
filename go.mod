@@ -23,7 +23,7 @@ require (
 	github.com/philippgille/chromem-go v0.6.0
 	github.com/sfomuseum/go-csvdict v1.0.0
 	github.com/sfomuseum/go-flags v0.10.0
-	github.com/sfomuseum/go-timings v1.2.1
+	github.com/sfomuseum/go-timings v1.3.0
 	github.com/tidwall/gjson v1.17.1
 	github.com/whosonfirst/go-overture v0.0.0-20240608205656-2f9a190af0d5
 	github.com/whosonfirst/go-whosonfirst-feature v0.0.27

@@ -73,6 +73,7 @@ func main() {
 		SourceLocationDatabaseURI: source_location_database_uri,
 		TargetLocationDatabaseURI: target_location_database_uri,
 		VectorDatabaseURI:         vector_database_uri,
+		MonitorURI:                monitor_uri,
 	}
 
 	cmp, err := dedupe.NewComparator3(ctx, cmp_opts)

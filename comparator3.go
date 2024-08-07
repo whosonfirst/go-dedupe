@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
+	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe/compare"
 	"github.com/whosonfirst/go-dedupe/location"
 )
@@ -26,6 +28,7 @@ type Comparator3Options struct {
 	SourceLocationDatabaseURI string
 	TargetLocationDatabaseURI string
 	VectorDatabaseURI         string
+	MonitorURI                string
 }
 
 // NewComparator returns a new `Comparator` instance which wraps all the logic of comparing the embeddings
@@ -70,14 +73,48 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 
 	// For each geohash in the target database
 
+	geohashes := make([]string, 0)
+
 	geohashes_cb := func(ctx context.Context, geohash string) error {
+		geohashes = append(geohashes, geohash)
+		return nil
+	}
+
+	err := c.target_database.GetGeohashes(ctx, geohashes_cb)
+
+	if err != nil {
+		return err
+	}
+
+	count_geohashes := len(geohashes)
+	slog.Info("Process geohashes", "count", count_geohashes)
+
+	//
+
+	monitor_uri := fmt.Sprintf("counter://PT60S?total=%d", count_geohashes)
+	monitor, err := timings.NewMonitor(ctx, monitor_uri)
+
+	if err != nil {
+		return err
+	}
+
+	monitor.Start(ctx, os.Stderr)
+	defer monitor.Stop(ctx)
+
+	wg := new(sync.WaitGroup)
+
+	for _, geohash := range geohashes {
 
 		<-throttle
+
+		wg.Add(1)
 
 		go func(geohash string) {
 
 			defer func() {
+				monitor.Signal(ctx)
 				throttle <- true
+				wg.Done()
 			}()
 
 			logger := slog.Default()
@@ -186,15 +223,8 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 
 		}(geohash)
 
-		return nil
 	}
 
-	slog.Debug("Get geohashes from target database")
-	err := c.target_database.GetGeohashes(ctx, geohashes_cb)
-
-	if err != nil {
-		return err
-	}
-
+	wg.Wait()
 	return nil
 }

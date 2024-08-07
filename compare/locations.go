@@ -25,6 +25,8 @@ type CompareLocationsOptions struct {
 	SourceLocations   string
 	TargetBucketURI   string
 	TargetLocations   string
+	WriterBucketURI   string
+	WriterPrefix      string
 	VectorDatabaseURI string
 	Geohash           string
 	Threshold         float64
@@ -34,6 +36,12 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 
 	logger := slog.Default()
 	logger = logger.With("geohash", opts.Geohash)
+
+	t0 := time.Now()
+
+	defer func() {
+		logger.Info("Time to compare locations", "time", time.Since(t0))
+	}()
 
 	logger.Debug("Compare locations", "source", opts.SourceLocations, "target", opts.TargetLocations)
 
@@ -96,14 +104,14 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 
 	t1 := time.Now()
 
-	logger.Info("Walk sources", "path", opts.SourceLocations)
+	logger.Debug("Walk sources", "path", opts.SourceLocations)
 	err = geojsonl.Walk(ctx, source_walk_opts, opts.SourceLocations)
 
 	if err != nil {
 		return fmt.Errorf("Failed to walk source locations, %w", err)
 	}
 
-	logger.Info("Time to work sources", "path", opts.SourceLocations, "time", time.Since(t1))
+	logger.Info("Time to walk sources", "path", opts.SourceLocations, "time", time.Since(t1))
 
 	//
 
@@ -120,7 +128,7 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 		geohash := opts.Geohash
 		threshold := opts.Threshold
 
-		logger.Info("Compare location from target database", "geohash", geohash, "location", loc.String())
+		logger.Debug("Compare location from target database", "geohash", geohash, "location", loc.String())
 
 		results, err := vector_db.Query(ctx, loc)
 
@@ -193,11 +201,16 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 		Callback:     target_walk_cb,
 	}
 
+	t2 := time.Now()
+
+	logger.Debug("Walk target", "path", opts.TargetLocations)
 	err = geojsonl.Walk(ctx, target_walk_opts, opts.TargetLocations)
 
 	if err != nil {
 		return fmt.Errorf("Failed to walk target locations, %w", err)
 	}
+
+	logger.Info("Time to walk target", "path", opts.TargetLocations, "time", time.Since(t2))
 
 	//
 

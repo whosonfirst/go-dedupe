@@ -19,9 +19,9 @@ func main() {
 
 	ctx := context.Background()
 	
-	monitor, _ := timings.NewMonitor(ctx, "counter://PT60S)
+	monitor, _ := timings.NewMonitor(ctx, "counter://PT60S")
 
-	monitor.Start(ctx, os.Stdout)
+	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
 	monitor.Signal(ctx)	// increments by 1

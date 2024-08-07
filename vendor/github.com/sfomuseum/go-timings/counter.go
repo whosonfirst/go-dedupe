@@ -3,12 +3,14 @@ package timings
 import (
 	"context"
 	"fmt"
-	"github.com/sfomuseum/iso8601duration"
 	"io"
 	_ "log"
 	"net/url"
+	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/sfomuseum/iso8601duration"
 )
 
 // type CounterMonitor implements the `Monitor` interface providing a background timings mechanism that tracks incrementing events.
@@ -18,6 +20,7 @@ type CounterMonitor struct {
 	start   time.Time
 	counter int64
 	ticker  *time.Ticker
+	total   int64
 }
 
 func init() {
@@ -38,6 +41,8 @@ func NewCounterMonitor(ctx context.Context, uri string) (Monitor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
+
+	q := u.Query()
 
 	str_duration := u.Host
 
@@ -62,6 +67,17 @@ func NewCounterMonitor(ctx context.Context, uri string) (Monitor, error) {
 		counter: count,
 	}
 
+	if q.Has("total") {
+
+		v, err := strconv.ParseInt(q.Get("total"), 10, 64)
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid ?total= query parameter, %w", err)
+		}
+
+		t.total = v
+	}
+
 	return t, nil
 }
 
@@ -84,7 +100,15 @@ func (t *CounterMonitor) Start(ctx context.Context, wr io.Writer) error {
 			case <-ctx.Done():
 				return
 			case <-t.ticker.C:
-				msg := fmt.Sprintf("processed %d records in %v (started %v)\n", atomic.LoadInt64(&t.counter), time.Since(t.start), t.start)
+
+				var msg string
+
+				if t.total > 0 {
+					msg = fmt.Sprintf("processed %d/%d records in %v (started %v)\n", atomic.LoadInt64(&t.counter), t.total, time.Since(t.start), t.start)
+				} else {
+					msg = fmt.Sprintf("processed %d records in %v (started %v)\n", atomic.LoadInt64(&t.counter), time.Since(t.start), t.start)
+				}
+
 				wr.Write([]byte(msg))
 			}
 		}
