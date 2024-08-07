@@ -4,6 +4,13 @@ package main
 
 [asc][asc@SD-931-4][11:05:22] /usr/local/whosonfirst/go-whosonfirst-dedupe                                                                                                                     > go run cmd/compare-alltheplaces/main.go /usr/local/data/alltheplaces/dunkin_us.geojson
 
+ 51422 |2024/08/06 19:30:04 INFO Unmarshal path=/usr/local/data/alltheplaces/amcal_au.geojson
+ 51423 |2024/08/06 19:30:08 INFO Possible geohash=qd4qe similarity=3.790432929992676 wof="Amcal+ Pharmacy Ravenswood, 3/60 Lloyd Avenue Ravenswood WA AU" ov="Ravenswood Amcal Pharmacy, 60 Lloyd Av\
+       |e Ravenswood WA AU"
+ 51424 |2024/08/06 19:30:08 INFO Match geohash=qd4qe similarity=3.790432929992676 atp="Amcal+ Pharmacy Ravenswood, 3/60 Lloyd Avenue Ravenswood WA AU" ov="Ravenswood Amcal Pharmacy, 60 Lloyd Ave R\
+       |avenswood WA AU"
+ 51425 |2024/08/06 19:30:11 INFO Matches path=/usr/local/data/alltheplaces/amcal_au.geojson features=210 matches=1 "total features"=65582 "total matches"=94
+
 */
 
 import (
