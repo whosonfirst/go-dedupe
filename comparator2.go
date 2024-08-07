@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	_ "sync/atomic"
@@ -25,6 +26,7 @@ type Comparator2 struct {
 	writer              io.Writer
 	csv_writer          *csvdict.Writer
 	mu                  *sync.RWMutex
+	workers             int
 }
 
 // ComparatorOptions is a struct containing configuration options used to create a new `Comparator` instance.
@@ -54,6 +56,8 @@ func NewComparator2(ctx context.Context, opts *Comparator2Options) (*Comparator2
 		return nil, fmt.Errorf("Failed to create location database, %w", err)
 	}
 
+	workers := runtime.NumCPU() * 2
+
 	mu := new(sync.RWMutex)
 
 	c := &Comparator2{
@@ -62,6 +66,7 @@ func NewComparator2(ctx context.Context, opts *Comparator2Options) (*Comparator2
 		vector_database_uri: opts.VectorDatabaseURI,
 		writer:              opts.Writer,
 		mu:                  mu,
+		workers:             workers,
 	}
 
 	return c, nil
@@ -72,127 +77,150 @@ func NewComparator2(ctx context.Context, opts *Comparator2Options) (*Comparator2
 // similarity.
 func (c *Comparator2) Compare(ctx context.Context, threshold float64) error {
 
+	throttle := make(chan bool, c.workers)
+
+	for i := 0; i < c.workers; i++ {
+		throttle <- true
+	}
+
 	// For each geohash in the target database
 
 	geohashes_cb := func(ctx context.Context, geohash string) error {
 
-		slog.Debug("Process geohash", "geohash", geohash)
+		<-throttle
 
-		// Create vector database for geohash
+		go func(geohash string) {
 
-		db_uri, _ := url.QueryUnescape(c.vector_database_uri)
-		db_uri = strings.Replace(db_uri, "{geohash}", geohash, 1)
+			defer func() {
+				throttle <- true
+			}()
 
-		vector_db, err := vector.NewDatabase(ctx, db_uri)
+			slog.Debug("Process geohash", "geohash", geohash)
 
-		if err != nil {
-			return fmt.Errorf("Failed to create new database, %w", err)
-		}
+			// Create vector database for geohash
 
-		defer vector_db.Close(ctx)
+			db_uri, _ := url.QueryUnescape(c.vector_database_uri)
+			db_uri = strings.Replace(db_uri, "{geohash}", geohash, 1)
 
-		// Index vector database with records matching geohash in source database
-
-		add_cb := func(ctx context.Context, loc *location.Location) error {
-
-			slog.Debug("Add", "geohash", geohash, "loc", loc)
-			err := vector_db.Add(ctx, loc)
+			vector_db, err := vector.NewDatabase(ctx, db_uri)
 
 			if err != nil {
-				return fmt.Errorf("Failed to add record, %w", err)
+				return
+				// return fmt.Errorf("Failed to create new database, %w", err)
 			}
 
-			// atomic.AddInt32(&count, 1)
-			return nil
-		}
+			defer vector_db.Close(ctx)
 
-		t1 := time.Now()
+			// Index vector database with records matching geohash in source database
 
-		slog.Debug("Get locations with geohash from source database", "geohash", geohash)
-		err = c.source_database.GetWithGeohash(ctx, geohash, add_cb)
+			t1 := time.Now()
+			count := int64(0)
 
-		if err != nil {
-			return fmt.Errorf("Failed to add source locations to vector database, %w", err)
-		}
+			add_cb := func(ctx context.Context, loc *location.Location) error {
 
-		slog.Debug("Time to add locations with geohash from source database", "geohash", geohash, "time", time.Since(t1))
+				slog.Debug("Add", "geohash", geohash, "loc", loc)
+				err := vector_db.Add(ctx, loc)
 
-		// Get all the records matching geohash in target database and compare each against vector database
+				if err != nil {
+					return fmt.Errorf("Failed to add record, %w", err)
+				}
 
-		compare_cb := func(ctx context.Context, loc *location.Location) error {
+				// atomic.AddInt32(&count, 1)
+				count += 1
+				return nil
+			}
 
-			slog.Info("Compare location from target database", "geohash", geohash, "location", loc.String())
-
-			results, err := vector_db.Query(ctx, loc)
+			slog.Debug("Get locations with geohash from source database", "geohash", geohash)
+			err = c.source_database.GetWithGeohash(ctx, geohash, add_cb)
 
 			if err != nil {
-				slog.Error("Failed to query", "geohash", geohash, "location", loc.String(), "error", err)
-				return fmt.Errorf("Failed to query feature, %w", err)
+				return
+				// return fmt.Errorf("Failed to add source locations to vector database, %w", err)
 			}
 
-			for _, qr := range results {
+			slog.Info("Time to add locations with geohash from source database", "geohash", geohash, "records", count, "time", time.Since(t1))
 
-				slog.Info("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
+			// Get all the records matching geohash in target database and compare each against vector database
 
-				// Make this a toggle...
-				if float64(qr.Similarity) > threshold {
-					continue
+			compare_cb := func(ctx context.Context, loc *location.Location) error {
+
+				slog.Debug("Compare location from target database", "geohash", geohash, "location", loc.String())
+
+				results, err := vector_db.Query(ctx, loc)
+
+				if err != nil {
+					slog.Error("Failed to query", "geohash", geohash, "location", loc.String(), "error", err)
+					return fmt.Errorf("Failed to query feature, %w", err)
 				}
 
-				slog.Info("Match", "geohash", geohash, "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
+				for _, qr := range results {
 
-				row := map[string]string{
-					// The location being compared
-					"location": qr.ID,
-					// The matching source data that a location is compared against
-					"source":     loc.ID,
-					"similarity": fmt.Sprintf("%02f", qr.Similarity),
-				}
+					slog.Debug("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
-				c.mu.Lock()
-				defer c.mu.Unlock()
-
-				if c.csv_writer == nil {
-
-					fieldnames := make([]string, 0)
-
-					for k, _ := range row {
-						fieldnames = append(fieldnames, k)
+					// Make this a toggle...
+					if float64(qr.Similarity) > threshold {
+						continue
 					}
 
-					wr, err := csvdict.NewWriter(c.writer, fieldnames)
+					slog.Info("Match", "geohash", geohash, "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
 
-					if err != nil {
-						return fmt.Errorf("Failed to create CSV writer, %w", err)
+					row := map[string]string{
+						"source_id":  qr.ID,
+						"target_id":  loc.ID,
+						"source":     qr.Content,
+						"target":     loc.String(),
+						"similarity": fmt.Sprintf("%02f", qr.Similarity),
 					}
 
-					err = wr.WriteHeader()
+					c.mu.Lock()
+					defer c.mu.Unlock()
+
+					if c.csv_writer == nil {
+
+						fieldnames := make([]string, 0)
+
+						for k, _ := range row {
+							fieldnames = append(fieldnames, k)
+						}
+
+						wr, err := csvdict.NewWriter(c.writer, fieldnames)
+
+						if err != nil {
+							return fmt.Errorf("Failed to create CSV writer, %w", err)
+						}
+
+						err = wr.WriteHeader()
+
+						if err != nil {
+							return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+						}
+
+						c.csv_writer = wr
+					}
+
+					err = c.csv_writer.WriteRow(row)
 
 					if err != nil {
 						return fmt.Errorf("Failed to write header for CSV writer, %w", err)
 					}
 
-					c.csv_writer = wr
+					c.csv_writer.Flush()
+					break
 				}
 
-				err = c.csv_writer.WriteRow(row)
-
-				if err != nil {
-					return fmt.Errorf("Failed to write header for CSV writer, %w", err)
-				}
-
-				break
+				return nil
 			}
 
-			return nil
-		}
+			slog.Debug("Get locations with geohash from target database", "geohash", geohash)
+			err = c.target_database.GetWithGeohash(ctx, geohash, compare_cb)
 
-		slog.Debug("Get locations with geohash from target database", "geohash", geohash)
-		err = c.target_database.GetWithGeohash(ctx, geohash, compare_cb)
+			if err != nil {
+				slog.Error("Failed to get with geohash", "geohash", geohash, "error", err)
+				return
+				// return err
+			}
 
-		if err != nil {
-			return err
-		}
+		}(geohash)
 
 		return nil
 	}
