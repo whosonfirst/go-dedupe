@@ -11,6 +11,8 @@ import (
 	"github.com/whosonfirst/go-dedupe/embeddings"
 )
 
+const GEOHASH_PRECISION uint = 5
+
 var reserved_metadata_keys = []string{
 	"geohash",
 }
@@ -63,7 +65,7 @@ func (loc *Location) Metadata() map[string]string {
 func (loc *Location) Geohash() string {
 	lon := loc.Centroid[0]
 	lat := loc.Centroid[1]
-	return geohash.EncodeWithPrecision(lat, lon, 5)
+	return geohash.EncodeWithPrecision(lat, lon, GEOHASH_PRECISION)
 }
 
 func (loc *Location) Embeddings32(ctx context.Context, embedder embeddings.Embedder) ([]float32, error) {

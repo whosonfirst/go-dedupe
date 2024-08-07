@@ -186,7 +186,7 @@ func (db *SQLDatabase) configureSQLite(ctx context.Context) error {
 
 	if !has_table {
 
-		q := "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE UNIQUE INDEX `locations_by_geohash` ON `locations` (`geohash`);"
+		q := "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE INDEX `locations_by_geohash` ON `locations` (`geohash`);"
 		slog.Debug(q)
 
 		_, err := db.conn.ExecContext(ctx, q)
