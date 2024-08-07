@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	_ "sync/atomic"
+	"time"
 
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
@@ -84,6 +85,7 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 			return fmt.Errorf("Failed to unmarshal record, %w", err)
 		}
 
+		// logger.Info("Add to vector database", "location", loc.String())
 		return vector_db.Add(ctx, loc)
 	}
 
@@ -92,11 +94,16 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 		Callback:     source_walk_cb,
 	}
 
+	t1 := time.Now()
+
+	logger.Info("Walk sources", "path", opts.SourceLocations)
 	err = geojsonl.Walk(ctx, source_walk_opts, opts.SourceLocations)
 
 	if err != nil {
 		return fmt.Errorf("Failed to walk source locations, %w", err)
 	}
+
+	logger.Info("Time to work sources", "path", opts.SourceLocations, "time", time.Since(t1))
 
 	//
 
@@ -113,7 +120,7 @@ func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error 
 		geohash := opts.Geohash
 		threshold := opts.Threshold
 
-		logger.Debug("Compare location from target database", "geohash", geohash, "location", loc.String())
+		logger.Info("Compare location from target database", "geohash", geohash, "location", loc.String())
 
 		results, err := vector_db.Query(ctx, loc)
 

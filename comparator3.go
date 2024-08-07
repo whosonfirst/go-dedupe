@@ -165,7 +165,8 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 			source_bucket := fmt.Sprintf("file://%s", source_root)
 			target_bucket := fmt.Sprintf("file://%s", target_root)
 
-			logger.Info("Compare locations", "source", source_fname, "source count", count_source, "target", target_fname, "target count", count_target)
+			// logger.Info("Compare locations", "source", source_path, "source count", count_source, "target", target_path, "target count", count_target)
+			logger.Info("Compare locations", "source count", count_source, "target count", count_target)
 
 			compare_opts := &compare.CompareLocationsOptions{
 				SourceBucketURI:   source_bucket,
