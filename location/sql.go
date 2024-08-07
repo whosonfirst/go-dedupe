@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strconv"
 )
 
 type SQLDatabase struct {
@@ -58,6 +59,17 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if q.Has("max-conns") {
+
+		v, err := strconv.Atoi(q.Get("max-conns"))
+
+		if err != nil {
+			return nil, err
+		}
+
+		db.conn.SetMaxOpenConns(v)
 	}
 
 	return db, nil
