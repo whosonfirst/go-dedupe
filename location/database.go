@@ -11,10 +11,12 @@ import (
 )
 
 type GetWithGeohashCallback func(context.Context, *Location) error
+type GetGeohashesCallback func(context.Context, string) error
 
 type Database interface {
 	AddLocation(context.Context, *Location) error
 	GetById(context.Context, string) (*Location, error)
+	GetGeohashes(context.Context, GetGeohashesCallback) error
 	GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
 	Close(context.Context) error
 }

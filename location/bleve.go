@@ -125,6 +125,10 @@ func (db *BleveDatabase) GetById(ctx context.Context, id string) (*Location, err
 	return loc, nil
 }
 
+func (db *BleveDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
+	return fmt.Errorf("Not implemeted")
+}
+
 func (db *BleveDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
 
 	q := bleve.NewMatchQuery(geohash)

@@ -12,6 +12,7 @@ import (
 type SQLDatabase struct {
 	conn   *sql.DB
 	engine string
+	dsn    string
 }
 
 func init() {
@@ -47,6 +48,7 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 	db := &SQLDatabase{
 		engine: engine,
 		conn:   conn,
+		dsn:    dsn,
 	}
 
 	if engine == "sqlite3" {
@@ -59,6 +61,10 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 	}
 
 	return db, nil
+}
+
+func (db *SQLDatabase) String() string {
+	return db.dsn
 }
 
 func (db *SQLDatabase) AddLocation(ctx context.Context, loc *Location) error {
@@ -108,11 +114,12 @@ func (db *SQLDatabase) GetById(ctx context.Context, id string) (*Location, error
 	return loc, nil
 }
 
-func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
+func (db *SQLDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
 
-	q := "SELECT body FROM locations WHERE geohash = ?"
+	q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count DESC"
+	slog.Debug("Get geohashes", "query", q)
 
-	rows, err := db.conn.QueryContext(ctx, q, geohash)
+	rows, err := db.conn.QueryContext(ctx, q)
 
 	if err != nil {
 		return err
@@ -122,11 +129,50 @@ func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb Ge
 
 	for rows.Next() {
 
+		var geohash string
+		var count int
+
+		err := rows.Scan(&geohash, &count)
+
+		if err != nil {
+			return err
+		}
+
+		slog.Debug("Handle geohash", "geohash", geohash)
+		err = cb(ctx, geohash)
+
+		if err != nil {
+			return fmt.Errorf("Callback failed for geohash %s, %w", geohash, err)
+		}
+	}
+
+	return rows.Err()
+}
+
+func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
+
+	q := "SELECT body FROM locations WHERE geohash = ?"
+	slog.Debug("Get with geohash", "query", q, "geohash", geohash, "database", db)
+
+	rows, err := db.conn.QueryContext(ctx, q, geohash)
+
+	if err != nil {
+		slog.Error("Failed to query", "error", err)
+		return err
+	}
+
+	defer rows.Close()
+
+	slog.Debug("WTF")
+
+	for rows.Next() {
+
 		var body []byte
 
 		err := rows.Scan(&body)
 
 		if err != nil {
+			slog.Error("Failed to scan location body", "error", err)
 			return err
 		}
 
@@ -135,9 +181,11 @@ func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb Ge
 		err = json.Unmarshal(body, &loc)
 
 		if err != nil {
+			slog.Error("Failed to unmarshal location", "error", err)
 			return err
 		}
 
+		slog.Debug("Process location for geohash", "geohash", geohash, "location", loc.String())
 		err = cb(ctx, loc)
 
 		if err != nil {
@@ -217,7 +265,7 @@ func (db *SQLDatabase) configureSQLite(ctx context.Context) error {
 		}
 	}
 
-	db.conn.SetMaxOpenConns(1)
+	// db.conn.SetMaxOpenConns(1)
 
 	return nil
 }

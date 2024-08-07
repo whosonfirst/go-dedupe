@@ -332,11 +332,12 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 				return fmt.Errorf("Invalid or unsupported compression")
 			}
 
-			slog.Debug(q)
+			// slog.Debug(q)
 
 			_, err := db.vec_db.ExecContext(ctx, q, snowflake_id, v)
 
 			if err != nil {
+				slog.Error("Failed to insert row", "id", id, "snowflake_id", snowflake_id, "error", err)
 				return fmt.Errorf("Failed to insert row for ID %s (%d), %w", id, snowflake_id, err)
 			}
 		}
