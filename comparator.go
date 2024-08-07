@@ -105,7 +105,7 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 
 	if !exists {
 
-		db_uri, _ := url.QueryUnescape(c.vector_database_uri)		
+		db_uri, _ := url.QueryUnescape(c.vector_database_uri)
 		db_uri = strings.Replace(db_uri, "{geohash}", geohash, 1)
 
 		new_db, err := vector.NewDatabase(ctx, db_uri)
@@ -114,13 +114,15 @@ func (c *Comparator) Compare(ctx context.Context, body []byte, threshold float64
 			return false, fmt.Errorf("Failed to create new database, %w", err)
 		}
 
-		c.vector_database_cache.Set(geohash, new_db, 1)
-		c.vector_database_cache.Wait()
+		// c.vector_database_cache.Set(geohash, new_db, 1)
+		// c.vector_database_cache.Wait()
 
 		vector_db = new_db
 	} else {
 		vector_db = v.(vector.Database)
 	}
+
+	defer vector_db.Close(ctx)
 
 	count := int32(0)
 	t1 := time.Now()

@@ -28,7 +28,7 @@ func main() {
 
 	// var embedder_uri string
 	// var vector_database_db string
-	
+
 	var vector_database_uri string
 	var location_database_uri string
 	var location_parser_uri string
@@ -40,15 +40,13 @@ func main() {
 
 	var threshold float64
 	var verbose bool
-	
+
 	// flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
 
 	// flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Ftmp%2F%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=matroyshka", "...")
 
-	
+	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none", "...")
 
-	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Ftmp%2F%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=0.75&max-results=10&dimensions=1024&compression=matroyshka", "...")
-	
 	flag.StringVar(&location_database_uri, "location-database-uri", "sql://sqlite3?dsn=/usr/local/data/overture/overture-locations.db", "...")
 	flag.StringVar(&location_parser_uri, "parser-uri", "alltheplaces://", "...")
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
@@ -59,15 +57,14 @@ func main() {
 	flag.Float64Var(&threshold, "threshold", 0.95, "...")
 
 	flag.IntVar(&workers, "workers", 10, "...")
-	flag.BoolVar(&verbose, "verbose", false, "...")	
+	flag.BoolVar(&verbose, "verbose", false, "...")
 	flag.Parse()
 
 	uris := flag.Args()
 
-
 	if verbose {
-                slog.SetLogLoggerLevel(slog.LevelDebug)
-                slog.Debug("Verbose logging enabled")
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
 	}
 
 	ctx := context.Background()
@@ -95,7 +92,7 @@ func main() {
 
 	defer cmp.Flush()
 	defer cmp.Close()
-	
+
 	monitor, err := timings.NewMonitor(ctx, monitor_uri)
 
 	if err != nil {

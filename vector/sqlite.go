@@ -11,9 +11,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"strconv"
+	"strings"
 	"time"
-	
+
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/bwmarrin/snowflake"
 	_ "github.com/mattn/go-sqlite3"
@@ -23,19 +25,22 @@ import (
 
 type SQLiteDatabase struct {
 	// The underlying SQLite database used to store and query embeddings.
-	vec_db       *sql.DB
+	vec_db *sql.DB
 	// The whosonfirst/go-dedupe/embeddings instance to use for deriving embeddings.
-	embedder     embeddings.Embedder
+	embedder embeddings.Embedder
 	// The number of dimensions for embeddings
-	dimensions   int
+	dimensions int
 	// The maximum distance between query input and embeddings when matching
 	max_distance float32
 	// The maximum number of results for queries
-	max_results  int
+	max_results int
 	// The compression type to use for embeddings. Valid options are: quantize, matroyshka, none (default)
-	compression  string
+	compression string
 	// If true that existing records are re-indexed. If not, they are skipped and left as-is.
 	refresh bool
+
+	is_tmp   bool
+	tmp_path string
 }
 
 var snowflake_node *snowflake.Node
@@ -60,15 +65,45 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	is_tmp := false
+	tmp_path := ""
+
 	q := u.Query()
 	dsn := q.Get("dsn")
+
+	if strings.HasPrefix(dsn, "{tmp}") {
+
+		slog.Debug("DSN is tmp file", "dsn", dsn)
+		u, err := url.Parse(dsn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		path := u.Path
+		q := u.Query()
+
+		suffix := strings.Replace(path, "{tmp}", "*-", 1)
+
+		f, err := os.CreateTemp("", suffix)
+
+		if err != nil {
+			return nil, err
+		}
+
+		tmp_path = f.Name()
+		is_tmp = true
+
+		dsn = fmt.Sprintf("%s?%s", tmp_path, q.Encode())
+		slog.Debug("DSN is tmp file (final)", "dsn", dsn)
+	}
 
 	dimensions := 768
 	max_distance := float32(5.0)
 	max_results := 10
 	compression := "none"
 	refresh := false
-	
+
 	if q.Has("dimensions") {
 
 		v, err := strconv.Atoi(q.Get("dimensions"))
@@ -106,7 +141,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		compression = q.Get("compression")
 	}
 
-	if q.Has("refresh"){
+	if q.Has("refresh") {
 
 		v, err := strconv.ParseBool(q.Get("refresh"))
 
@@ -116,7 +151,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 		refresh = v
 	}
-	
+
 	if snowflake_node == nil {
 
 		n, err := snowflake.NewNode(1)
@@ -201,7 +236,9 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		max_distance: max_distance,
 		max_results:  max_results,
 		compression:  compression,
-		refresh: refresh,
+		refresh:      refresh,
+		is_tmp:       is_tmp,
+		tmp_path:     tmp_path,
 	}
 
 	return db, nil
@@ -235,7 +272,7 @@ func (db *SQLiteDatabase) Add(ctx context.Context, loc *location.Location) error
 	default:
 
 		action = "skip"
-		
+
 		if db.refresh {
 			action = "update"
 		}
@@ -339,7 +376,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 	slog.Debug("Query", "statement", q, "location", loc, "distance", db.max_distance, "limit", db.max_results, "compression", db.compression)
 
 	t1 := time.Now()
-	
+
 	rows, err := db.vec_db.QueryContext(ctx, q, query, db.max_distance, db.max_results)
 
 	if err != nil {
@@ -347,7 +384,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 	}
 
 	slog.Debug("Query context", "time", time.Since(t1))
-	
+
 	for rows.Next() {
 
 		var snowflake_id int64
@@ -360,7 +397,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 		}
 
 		slog.Debug("Query scan", "id", snowflake_id, "time", time.Since(t1))
-		
+
 		id, content, err := db.getLocationData(ctx, snowflake_id)
 
 		if err != nil {
@@ -379,7 +416,7 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 	}
 
 	slog.Debug("Query rows", "time", time.Since(t1))
-	
+
 	return results, nil
 }
 
@@ -388,7 +425,24 @@ func (db *SQLiteDatabase) Flush(ctx context.Context) error {
 }
 
 func (db *SQLiteDatabase) Close(ctx context.Context) error {
-	return db.vec_db.Close()
+
+	err := db.vec_db.Close()
+
+	if err != nil {
+		return err
+	}
+
+	if db.is_tmp {
+
+		slog.Debug("Remove tmp db", "path", db.tmp_path)
+		err := os.Remove(db.tmp_path)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (db *SQLiteDatabase) getSnowflakeId(ctx context.Context, loc *location.Location) (int64, error) {
