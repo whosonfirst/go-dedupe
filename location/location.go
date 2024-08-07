@@ -11,6 +11,7 @@ import (
 	"github.com/whosonfirst/go-dedupe/embeddings"
 )
 
+// 2.4km
 const GEOHASH_PRECISION uint = 5
 
 var reserved_metadata_keys = []string{
