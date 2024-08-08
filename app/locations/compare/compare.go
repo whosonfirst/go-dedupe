@@ -1,14 +1,13 @@
 package compare
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"context"
 	"log/slog"
 
 	"github.com/sfomuseum/go-flags/flagset"
 	wof_compare "github.com/whosonfirst/go-dedupe/compare"
-	
 )
 
 func Run(ctx context.Context) error {
@@ -33,7 +32,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	}
 
 	err := wof_compare.CompareLocationDatabases(ctx, cmp_opts)
-	
+
 	if err != nil {
 		return fmt.Errorf("Failed to compare location databases, %w", err)
 	}

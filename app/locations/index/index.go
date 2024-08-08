@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/sfomuseum/go-flags/flagset"	
+	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/iterator"
@@ -99,6 +99,6 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	if err != nil {
 		return fmt.Errorf("Failed to walk, %v", err)
 	}
-	
+
 	return nil
 }

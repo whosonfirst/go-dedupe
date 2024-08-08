@@ -1,5 +1,7 @@
 package overture
 
+// go run cmd/index-locations/main.go -verbose -location-database-uri null:// -location-parser-uri overtureplaces:// -iterator-uri 'overture://?bucket-uri=file:///' /usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
+
 import (
 	"context"
 	"fmt"

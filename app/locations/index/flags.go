@@ -6,13 +6,13 @@ import (
 	"github.com/sfomuseum/go-flags/flagset"
 )
 
-	var location_database_uri string
-	var location_parser_uri string
-	var iterator_uri string
+var location_database_uri string
+var location_parser_uri string
+var iterator_uri string
 
-	var monitor_uri string
+var monitor_uri string
 
-	var verbose bool
+var verbose bool
 
 func DefaultFlagSet() *flag.FlagSet {
 
@@ -24,6 +24,6 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
 	fs.BoolVar(&verbose, "verbose", false, "...")
-	
+
 	return fs
 }
