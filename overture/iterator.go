@@ -88,7 +88,7 @@ func NewOvertureIterator(ctx context.Context, uri string) (iterator.Iterator, er
 
 		start_after = v
 	}
-	
+
 	iter := &OvertureIterator{
 		bucket:      source_bucket,
 		max_workers: max_workers,
@@ -155,7 +155,6 @@ func (iter *OvertureIterator) IterateWithCallback(ctx context.Context, cb iterat
 	}
 
 	wg.Wait()
-
 	return nil
 }
 

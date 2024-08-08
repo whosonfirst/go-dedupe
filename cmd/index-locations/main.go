@@ -97,7 +97,7 @@ func main() {
 		loc, err := prsr.Parse(ctx, body)
 
 		if dedupe.IsInvalidRecordError(err) {
-			slog.Warn("Invalid record")
+			// slog.Warn("Invalid record")
 			return nil
 		} else if err != nil {
 			slog.Error("Failed to parse record", "error", err)
