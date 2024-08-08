@@ -169,6 +169,10 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			target_root := filepath.Dir(target_path)
 			target_fname := filepath.Base(target_path)
 
+			// TBD – write source/target to buckets; for example if bucket config
+			// in CompareLocationDatabasesOptions not empty then write files there
+			// rather than defining explicit file:// URIs below.
+
 			source_bucket := fmt.Sprintf("file://%s", source_root)
 			target_bucket := fmt.Sprintf("file://%s", target_root)
 
@@ -235,6 +239,6 @@ func WriteLocationsWithGeohash(ctx context.Context, opts *WriteLocationsWithGeoh
 		return count, fmt.Errorf("Failed to get %s locations with geohash %s, %w", opts.Label, opts.Geohash, err)
 	}
 
-	opts.Logger.Info("Got locations with geohash", "label", opts.Label, "count", count, "time", time.Since(t1))
+	opts.Logger.Debug("Got locations with geohash", "label", opts.Label, "count", count, "time", time.Since(t1))
 	return count, nil
 }

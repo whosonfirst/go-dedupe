@@ -111,7 +111,7 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		return fmt.Errorf("Failed to walk source locations, %w", err)
 	}
 
-	logger.Info("Time to walk sources", "path", opts.SourceLocations, "time", time.Since(t1))
+	logger.Info("Time to index sources in vector db", "time", time.Since(t1))
 
 	//
 
@@ -210,9 +210,9 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		return fmt.Errorf("Failed to walk target locations, %w", err)
 	}
 
-	logger.Info("Time to walk target", "path", opts.TargetLocations, "time", time.Since(t2))
+	logger.Info("Time to compare targets against source vector db", "time", time.Since(t2))
 
-	//
+	// Write CSV buffer to opts.WriterBucket here...
 
 	return nil
 }
