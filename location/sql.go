@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/url"
 	"strconv"
+
+	"github.com/whosonfirst/go-dedupe/sqlite"
 )
 
 type SQLDatabase struct {
@@ -54,11 +56,22 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 
 	if engine == "sqlite3" {
 
-		err := db.configureSQLite(ctx)
+		opts := sqlite.DefaultConfigureDatabaseOptions()
+		opts.CreateTablesIfNecessary = true
+
+		opts.Tables = []*sqlite.Table{
+			&sqlite.Table{
+				Name:   "locations",
+				Schema: "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE INDEX `locations_by_geohash` ON `locations` (`geohash`);",
+			},
+		}
+
+		err := sqlite.ConfigureDatabase(ctx, db.conn, opts)
 
 		if err != nil {
 			return nil, err
 		}
+
 	}
 
 	if q.Has("max-conns") {
@@ -175,8 +188,6 @@ func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb Ge
 
 	defer rows.Close()
 
-	slog.Debug("WTF")
-
 	for rows.Next() {
 
 		var body []byte
@@ -210,74 +221,4 @@ func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb Ge
 
 func (db *SQLDatabase) Close(ctx context.Context) error {
 	return db.conn.Close()
-}
-
-func (db *SQLDatabase) configureSQLite(ctx context.Context) error {
-
-	table_name := "locations"
-	has_table := false
-
-	sql := "SELECT name FROM sqlite_master WHERE type='table'"
-
-	rows, err := db.conn.QueryContext(ctx, sql)
-
-	if err != nil {
-		return fmt.Errorf("Failed to query sqlite_master, %w", err)
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var name string
-		err := rows.Scan(&name)
-
-		if err != nil {
-			return fmt.Errorf("Failed scan table name, %w", err)
-		}
-
-		if name == table_name {
-			has_table = true
-			break
-		}
-	}
-
-	//
-
-	if !has_table {
-
-		q := "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE INDEX `locations_by_geohash` ON `locations` (`geohash`);"
-		slog.Debug(q)
-
-		_, err := db.conn.ExecContext(ctx, q)
-
-		if err != nil {
-			return fmt.Errorf("Failed to create %s table, %w", table_name, err)
-		}
-
-	}
-
-	//
-
-	pragma := []string{
-		"PRAGMA JOURNAL_MODE=OFF",
-		"PRAGMA SYNCHRONOUS=OFF",
-		"PRAGMA LOCKING_MODE=EXCLUSIVE",
-		// https://www.gaia-gis.it/gaia-sins/spatialite-cookbook/html/system.html
-		"PRAGMA PAGE_SIZE=4096",
-		"PRAGMA CACHE_SIZE=1000000",
-	}
-
-	for _, p := range pragma {
-
-		_, err := db.conn.ExecContext(ctx, p)
-
-		if err != nil {
-			return fmt.Errorf("Failed to set pragma '%s', %w", p, err)
-		}
-	}
-
-	// db.conn.SetMaxOpenConns(1)
-
-	return nil
 }
