@@ -177,6 +177,7 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 	// START OF set up tables and configure database
 
 	configure_opts := sqlite.DefaultConfigureDatabaseOptions()
+	configure_opts.Pragma = make([]string, 0)
 	configure_opts.CreateTablesIfNecessary = true
 
 	vec_tables := []*sqlite.Table{

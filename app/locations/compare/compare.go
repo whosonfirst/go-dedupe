@@ -28,6 +28,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		SourceLocationDatabaseURI: source_location_database_uri,
 		TargetLocationDatabaseURI: target_location_database_uri,
 		VectorDatabaseURI:         vector_database_uri,
+		Workers:                   workers,
 		Threshold:                 threshold,
 	}
 

@@ -22,6 +22,7 @@ type CompareLocationDatabasesOptions struct {
 	VectorDatabaseURI         string
 	MonitorURI                string
 	Threshold                 float64
+	Workers                   int
 }
 
 func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabasesOptions) error {
@@ -42,7 +43,14 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	defer target_database.Close(ctx)
 
-	workers := runtime.NumCPU() * 4
+	workers := opts.Workers
+
+	if workers == 0 {
+		workers = runtime.NumCPU()
+	}
+
+	slog.Debug("Set up workers", "count", workers)
+
 	throttle := make(chan bool, workers)
 
 	for i := 0; i < workers; i++ {
