@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe/location"
@@ -121,51 +123,43 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			target_path := target_wr.Name()
 			defer os.Remove(target_path)
 
-			count_source := 0
-			count_target := 0
-
-			source_cb := func(ctx context.Context, loc *location.Location) error {
-
-				enc_loc, err := json.Marshal(loc)
-
-				if err != nil {
-					logger.Warn("Failed to encode location, skipping", "id", loc.ID, "error", err)
-					return nil
-				}
-
-				source_wr.Write(enc_loc)
-				source_wr.Write([]byte("\n"))
-
-				// slog.Debug("Write source", "id", loc.ID)
-				count_source += 1
-				return nil
+			source_opts := &WriteLocationsWithGeohashOptions{
+				Database: source_database,
+				Logger:   logger,
+				Geohash:  geohash,
+				Writer:   source_wr,
+				Label:    "source",
 			}
 
-			err = source_database.GetWithGeohash(ctx, geohash, source_cb)
+			count_source, err := WriteLocationsWithGeohash(ctx, source_opts)
 
 			if err != nil {
+				logger.Error("Failed to write source locations", "error", err)
 				return
 			}
 
-			target_cb := func(ctx context.Context, loc *location.Location) error {
-
-				enc_loc, err := json.Marshal(loc)
-
-				if err != nil {
-					logger.Warn("Failed to encode location, skipping", "id", loc.ID, "error", err)
-					return nil
-				}
-
-				target_wr.Write(enc_loc)
-				target_wr.Write([]byte("\n"))
-
-				count_target += 1
-				return nil
+			if count_source == 0 {
+				logger.Debug("No source locations match geohash, skipping")
+				return
 			}
 
-			err = target_database.GetWithGeohash(ctx, geohash, target_cb)
+			target_opts := &WriteLocationsWithGeohashOptions{
+				Database: target_database,
+				Logger:   logger,
+				Geohash:  geohash,
+				Writer:   target_wr,
+				Label:    "target",
+			}
+
+			count_target, err := WriteLocationsWithGeohash(ctx, target_opts)
 
 			if err != nil {
+				logger.Error("Failed to write target locations", "error", err)
+				return
+			}
+
+			if count_target == 0 {
+				logger.Debug("No target locations match geohash, skipping")
 				return
 			}
 
@@ -178,7 +172,6 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			source_bucket := fmt.Sprintf("file://%s", source_root)
 			target_bucket := fmt.Sprintf("file://%s", target_root)
 
-			// logger.Info("Compare locations", "source", source_path, "source count", count_source, "target", target_path, "target count", count_target)
 			logger.Info("Compare locations", "source count", count_source, "target count", count_target)
 
 			compare_opts := &CompareLocationsForGeohashOptions{
@@ -203,4 +196,45 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	wg.Wait()
 	return nil
+}
+
+type WriteLocationsWithGeohashOptions struct {
+	Database location.Database
+	Writer   io.Writer
+	Logger   *slog.Logger
+	Geohash  string
+	Label    string
+}
+
+func WriteLocationsWithGeohash(ctx context.Context, opts *WriteLocationsWithGeohashOptions) (int, error) {
+
+	count := 0
+
+	cb_func := func(ctx context.Context, loc *location.Location) error {
+
+		enc_loc, err := json.Marshal(loc)
+
+		if err != nil {
+			opts.Logger.Error("Failed to encode location", "label", opts.Label, "id", loc.ID, "error", err)
+			return fmt.Errorf("Failed to encode %s location %s, %w", opts.Label, loc.ID, err)
+		}
+
+		opts.Writer.Write(enc_loc)
+		opts.Writer.Write([]byte("\n"))
+
+		count += 1
+		return nil
+	}
+
+	opts.Logger.Debug("Get locations with geohash", "label", opts.Label)
+	t1 := time.Now()
+
+	err := opts.Database.GetWithGeohash(ctx, opts.Geohash, cb_func)
+
+	if err != nil {
+		return count, fmt.Errorf("Failed to get %s locations with geohash %s, %w", opts.Label, opts.Geohash, err)
+	}
+
+	opts.Logger.Info("Got locations with geohash", "label", opts.Label, "count", count, "time", time.Since(t1))
+	return count, nil
 }

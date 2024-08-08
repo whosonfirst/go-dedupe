@@ -215,6 +215,17 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 
 	// END OF set up tables and configure database
 
+	if q.Has("max-conns") {
+
+		v, err := strconv.Atoi(q.Get("max-conns"))
+
+		if err != nil {
+			return nil, err
+		}
+
+		vec_db.SetMaxOpenConns(v)
+	}
+
 	embedder_uri := q.Get("embedder-uri")
 
 	embdr, err := embeddings.NewEmbedder(ctx, embedder_uri)
