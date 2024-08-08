@@ -21,6 +21,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/whosonfirst/go-dedupe/embeddings"
 	"github.com/whosonfirst/go-dedupe/location"
+	"github.com/whosonfirst/go-dedupe/sqlite"
 )
 
 type SQLiteDatabase struct {
@@ -173,53 +174,46 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to open database connection, %w", err)
 	}
 
-	has_meta_table, err := hasTable(ctx, vec_db, "vec_meta")
+	// START OF set up tables and configure database
+
+	configure_opts := sqlite.DefaultConfigureDatabaseOptions()
+	configure_opts.CreateTablesIfNecessary = true
+
+	vec_tables := []*sqlite.Table{
+		&sqlite.Table{
+			Name:   "vec_meta",
+			Schema: "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER, content TEXT); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`);",
+		},
+	}
+
+	var items_schema string
+
+	switch compression {
+	case "quantize":
+		items_schema = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding bit[%d])", dimensions)
+	case "matroyshka":
+		items_schema = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", matroyshka_dimensions)
+	case "none":
+		items_schema = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", dimensions)
+	default:
+		return nil, fmt.Errorf("Invalid or unsupported compression")
+	}
+
+	items_table := &sqlite.Table{
+		Name:   "vec_items",
+		Schema: items_schema,
+	}
+
+	vec_tables = append(vec_tables, items_table)
+	configure_opts.Tables = vec_tables
+
+	err = sqlite.ConfigureDatabase(ctx, vec_db, configure_opts)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to determine if metadata table exists, %w", err)
+		return nil, err
 	}
 
-	if !has_meta_table {
-
-		q := "CREATE TABLE vec_meta (id TEXT PRIMARY KEY, snowflake_id INTEGER, content TEXT); CREATE INDEX `vec_meta_by_snowflake_id` ON vec_meta (`snowflake_id`);"
-		slog.Debug(q)
-
-		_, err := vec_db.ExecContext(ctx, q)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create vec_meta table, %w", err)
-		}
-	}
-
-	has_vec_table, err := hasTable(ctx, vec_db, "vec_items")
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to determine if vec_items table exists, %w", err)
-	}
-
-	if !has_vec_table {
-
-		var q string
-
-		switch compression {
-		case "quantize":
-			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding bit[%d])", dimensions)
-		case "matroyshka":
-			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", matroyshka_dimensions)
-		case "none":
-			q = fmt.Sprintf("CREATE VIRTUAL TABLE vec_items USING vec0(embedding float[%d])", dimensions)
-		default:
-			return nil, fmt.Errorf("Invalid or unsupported compression")
-		}
-
-		slog.Debug(q)
-
-		_, err := vec_db.ExecContext(ctx, q)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create vec_items table, %w", err)
-		}
-	}
+	// END OF set up tables and configure database
 
 	embedder_uri := q.Get("embedder-uri")
 
