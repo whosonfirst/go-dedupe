@@ -1,5 +1,7 @@
 package alltheplaces
 
+// > go run cmd/index-locations/main.go -verbose -location-database-uri null:// -location-parser-uri alltheplaces:// -iterator-uri alltheplaces:// /usr/local/data/alltheplaces/*.geojson
+
 import (
 	"context"
 	"fmt"
