@@ -65,7 +65,7 @@ func main() {
 	prsr, err := parser.NewParser(ctx, location_parser_uri)
 
 	if err != nil {
-		log.Fatalf("Failed to create new location parser, %v", err)
+		log.Fatalf("Failed to create new location parser for '%s', %v", location_parser_uri, err)
 	}
 
 	iter, err := iterator.NewIterator(ctx, iterator_uri)

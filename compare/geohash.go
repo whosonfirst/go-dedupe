@@ -83,6 +83,8 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 	// Populate the vector database
 
+	count_sources := 0
+
 	source_walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
 		var loc *location.Location
@@ -94,7 +96,14 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		}
 
 		// logger.Info("Add to vector database", "location", loc.String())
-		return vector_db.Add(ctx, loc)
+		err = vector_db.Add(ctx, loc)
+
+		if err != nil {
+			return fmt.Errorf("Failed to index location %s in vector db, %w", loc.ID, err)
+		}
+
+		count_sources += 1
+		return nil
 	}
 
 	source_walk_opts := &geojsonl.WalkOptions{
@@ -111,7 +120,7 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		return fmt.Errorf("Failed to walk source locations, %w", err)
 	}
 
-	logger.Info("Time to index sources in vector db", "time", time.Since(t1))
+	logger.Info("Time to index sources in vector db", "count", count_sources, "time", time.Since(t1))
 
 	//
 
@@ -130,6 +139,8 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 		logger.Debug("Compare location from target database", "geohash", geohash, "location", loc.String())
 
+		// t1 := time.Now()
+
 		results, err := vector_db.Query(ctx, loc)
 
 		if err != nil {
@@ -137,12 +148,18 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 			return fmt.Errorf("Failed to query feature, %w", err)
 		}
 
+		// logger.Debug("Time to compare location from target database", "location", loc.String(), "time", time.Since(t1))
+
 		for _, qr := range results {
 
-			logger.Debug("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
+			logger.Info("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
 			// Make this a toggle...
 			if float64(qr.Similarity) > threshold {
+				continue
+			}
+
+			if qr.ID == loc.ID {
 				continue
 			}
 
