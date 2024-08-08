@@ -62,3 +62,7 @@ func (i *WhosOnFirstIterator) IterateWithCallback(ctx context.Context, cb iterat
 
 	return wof_iter.IterateURIs(ctx, uris...)
 }
+
+func (iter *WhosOnFirstIterator) Close(ctx context.Context) error {
+	return nil
+}

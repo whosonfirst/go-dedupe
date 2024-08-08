@@ -105,3 +105,7 @@ func (iter *AllThePlacesIterator) IterateWithCallback(ctx context.Context, cb it
 
 	return nil
 }
+
+func (iter *AllThePlacesIterator) Close(ctx context.Context) error {
+	return nil
+}

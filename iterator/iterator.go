@@ -15,6 +15,7 @@ type IteratorCallback func(context.Context, []byte) error
 type Iterator interface {
 	// Iterate(context.Context, ...string) iter.Seq2[*geojson.Feature, error]
 	IterateWithCallback(context.Context, IteratorCallback, ...string) error
+	Close(context.Context) error
 }
 
 // IteratorInitializationFunc is a function defined by individual iterator package and used to create

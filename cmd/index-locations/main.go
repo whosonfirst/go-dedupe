@@ -74,6 +74,15 @@ func main() {
 		log.Fatalf("Failed to create iterator, %v", err)
 	}
 
+	defer func() {
+
+		err := iter.Close(ctx)
+
+		if err != nil {
+			log.Fatalf("Failed to close iterator, %w", err)
+		}
+	}()
+
 	monitor, err := timings.NewMonitor(ctx, monitor_uri)
 
 	if err != nil {
@@ -102,7 +111,8 @@ func main() {
 			return err
 		}
 
-		// slog.Info("OK", "geohash", loc.Geohash())
+		slog.Debug("Added location", "id", loc.ID, "location", loc.String())
+
 		monitor.Signal(ctx)
 		return nil
 	}

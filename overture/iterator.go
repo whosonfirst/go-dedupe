@@ -16,9 +16,9 @@ import (
 
 type OvertureIterator struct {
 	iterator.Iterator
-	source_bucket *blob.Bucket
-	is_bzipped    bool
-	max_workers   int
+	bucket      *blob.Bucket
+	is_bzipped  bool
+	max_workers int
 }
 
 func init() {
@@ -86,7 +86,7 @@ func (iter *OvertureIterator) IterateWithCallback(ctx context.Context, cb iterat
 	}
 
 	walk_opts := &geojsonl.WalkOptions{
-		SourceBucket: iter.source_bucket,
+		SourceBucket: iter.bucket,
 		Callback:     walk_cb,
 		IsBzipped:    iter.is_bzipped,
 	}
@@ -100,4 +100,8 @@ func (iter *OvertureIterator) IterateWithCallback(ctx context.Context, cb iterat
 	wg.Wait()
 
 	return nil
+}
+
+func (iter *OvertureIterator) Close(ctx context.Context) error {
+	return iter.bucket.Close()
 }
