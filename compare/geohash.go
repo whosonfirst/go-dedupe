@@ -20,7 +20,7 @@ import (
 	"github.com/whosonfirst/go-overture/geojsonl"
 )
 
-type CompareLocationsOptions struct {
+type CompareLocationsForGeohashOptions struct {
 	SourceBucketURI   string
 	SourceLocations   string
 	TargetBucketURI   string
@@ -32,7 +32,7 @@ type CompareLocationsOptions struct {
 	Threshold         float64
 }
 
-func CompareLocations(ctx context.Context, opts *CompareLocationsOptions) error {
+func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGeohashOptions) error {
 
 	logger := slog.Default()
 	logger = logger.With("geohash", opts.Geohash)

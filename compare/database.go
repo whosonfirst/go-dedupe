@@ -1,4 +1,4 @@
-package dedupe
+package compare
 
 import (
 	"context"
@@ -11,63 +11,39 @@ import (
 	"sync"
 
 	"github.com/sfomuseum/go-timings"
-	"github.com/whosonfirst/go-dedupe/compare"
 	"github.com/whosonfirst/go-dedupe/location"
 )
 
-// Compatator compares arbirtrary locations against a database of existing records.
-type Comparator3 struct {
-	source_database     location.Database
-	target_database     location.Database
-	vector_database_uri string
-	workers             int
-}
-
-// ComparatorOptions is a struct containing configuration options used to create a new `Comparator` instance.
-type Comparator3Options struct {
+type CompareLocationDatabasesOptions struct {
 	SourceLocationDatabaseURI string
 	TargetLocationDatabaseURI string
 	VectorDatabaseURI         string
 	MonitorURI                string
+	Threshold                 float64
 }
 
-// NewComparator returns a new `Comparator` instance which wraps all the logic of comparing the embeddings
-// for a given `Location` instance against a database of `Location` instances and emit matches as CSV rows.
-func NewComparator3(ctx context.Context, opts *Comparator3Options) (*Comparator3, error) {
+func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabasesOptions) error {
 
-	source_db, err := location.NewDatabase(ctx, opts.SourceLocationDatabaseURI)
+	source_database, err := location.NewDatabase(ctx, opts.SourceLocationDatabaseURI)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create location database, %w", err)
+		return fmt.Errorf("Failed to create location database, %w", err)
 	}
 
-	target_db, err := location.NewDatabase(ctx, opts.TargetLocationDatabaseURI)
+	defer source_database.Close(ctx)
+
+	target_database, err := location.NewDatabase(ctx, opts.TargetLocationDatabaseURI)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create location database, %w", err)
+		return fmt.Errorf("Failed to create location database, %w", err)
 	}
+
+	defer target_database.Close(ctx)
 
 	workers := runtime.NumCPU() * 4
-	slog.Info("WORKERS", "workers", workers)
+	throttle := make(chan bool, workers)
 
-	c := &Comparator3{
-		source_database:     source_db,
-		target_database:     target_db,
-		vector_database_uri: opts.VectorDatabaseURI,
-		workers:             workers,
-	}
-
-	return c, nil
-}
-
-// Compare compares 'body' against the database of existing records (contained by 'c'). Matches are written as CSV rows with the
-// following keys: location (the location being compared), source (the matching source data that a location is compared against),
-// similarity.
-func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
-
-	throttle := make(chan bool, c.workers)
-
-	for i := 0; i < c.workers; i++ {
+	for i := 0; i < workers; i++ {
 		throttle <- true
 	}
 
@@ -80,7 +56,7 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 		return nil
 	}
 
-	err := c.target_database.GetGeohashes(ctx, geohashes_cb)
+	err = target_database.GetGeohashes(ctx, geohashes_cb)
 
 	if err != nil {
 		return err
@@ -165,7 +141,7 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 				return nil
 			}
 
-			err = c.source_database.GetWithGeohash(ctx, geohash, source_cb)
+			err = source_database.GetWithGeohash(ctx, geohash, source_cb)
 
 			if err != nil {
 				return
@@ -187,7 +163,7 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 				return nil
 			}
 
-			err = c.target_database.GetWithGeohash(ctx, geohash, target_cb)
+			err = target_database.GetWithGeohash(ctx, geohash, target_cb)
 
 			if err != nil {
 				return
@@ -205,17 +181,17 @@ func (c *Comparator3) Compare(ctx context.Context, threshold float64) error {
 			// logger.Info("Compare locations", "source", source_path, "source count", count_source, "target", target_path, "target count", count_target)
 			logger.Info("Compare locations", "source count", count_source, "target count", count_target)
 
-			compare_opts := &compare.CompareLocationsOptions{
+			compare_opts := &CompareLocationsForGeohashOptions{
 				SourceBucketURI:   source_bucket,
 				SourceLocations:   source_fname,
 				TargetBucketURI:   target_bucket,
 				TargetLocations:   target_fname,
-				VectorDatabaseURI: c.vector_database_uri,
+				VectorDatabaseURI: opts.VectorDatabaseURI,
 				Geohash:           geohash,
-				Threshold:         threshold,
+				Threshold:         opts.Threshold,
 			}
 
-			err = compare.CompareLocations(ctx, compare_opts)
+			err = CompareLocationsForGeohash(ctx, compare_opts)
 
 			if err != nil {
 				logger.Error("Failed to compare locations", "error", err)

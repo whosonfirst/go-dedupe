@@ -19,8 +19,8 @@ import (
 	"log"
 	"log/slog"
 
-	"github.com/whosonfirst/go-dedupe"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
+	"github.com/whosonfirst/go-dedupe/compare"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	_ "github.com/whosonfirst/go-dedupe/whosonfirst"
 	_ "gocloud.dev/blob/fileblob"
@@ -36,15 +36,8 @@ func main() {
 	var monitor_uri string
 	var workers int
 
-	// var bucket_uri string
-	// var is_bzipped bool
-
 	var threshold float64
 	var verbose bool
-
-	// flag.StringVar(&vector_database_uri, "vector-database-uri", "chromem://{geohash}?model=mxbai-embed-large", "...")
-
-	// flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%2Ftmp%2F%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=matroyshka", "...")
 
 	flag.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none", "...")
 
@@ -52,9 +45,6 @@ func main() {
 	flag.StringVar(&target_location_database_uri, "target-location-database-uri", "sql://sqlite3?dsn=/usr/local/data/overture/whosonfirst-locations.db", "...")
 
 	flag.StringVar(&monitor_uri, "monitor-uri", "counter://PT60S", "...")
-
-	// flag.StringVar(&bucket_uri, "bucket-uri", "file:///", "...")
-	// flag.BoolVar(&is_bzipped, "is-bzip2", true, "...")
 
 	flag.Float64Var(&threshold, "threshold", 4.0, "...")
 
@@ -69,22 +59,16 @@ func main() {
 
 	ctx := context.Background()
 
-	cmp_opts := &dedupe.Comparator3Options{
+	cmp_opts := &compare.CompareLocationDatabasesOptions{
 		SourceLocationDatabaseURI: source_location_database_uri,
 		TargetLocationDatabaseURI: target_location_database_uri,
 		VectorDatabaseURI:         vector_database_uri,
-		MonitorURI:                monitor_uri,
+		Threshold:                 threshold,
 	}
 
-	cmp, err := dedupe.NewComparator3(ctx, cmp_opts)
+	err := compare.CompareLocationDatabases(ctx, cmp_opts)
 
 	if err != nil {
 		log.Fatalf("Failed to create new comparator, %v", err)
-	}
-
-	err = cmp.Compare(ctx, threshold)
-
-	if err != nil {
-		log.Fatal(err)
 	}
 }
