@@ -9,12 +9,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/sfomuseum/go-csvdict"
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe/location"
-	"github.com/sfomuseum/go-csvdict"	
 )
 
 type CompareLocationDatabasesOptions struct {
@@ -92,57 +94,92 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	var csv_writer *csvdict.Writer
 
+	err_ch := make(chan error)
 	done_ch := make(chan bool)
 	row_ch := make(chan map[string]string)
+
+	ids_seen := new(sync.Map)
+
+	// Set up func to write match compare row to CSV writer.
+
+	write_row := func(row map[string]string) error {
+
+		if csv_writer == nil {
+
+			fieldnames := make([]string, 0)
+
+			for k, _ := range row {
+				fieldnames = append(fieldnames, k)
+			}
+
+			wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
+
+			if err != nil {
+				return fmt.Errorf("Failed to create CSV writer, %w", err)
+			}
+
+			err = wr.WriteHeader()
+
+			if err != nil {
+				slog.Error("Failed to write CSV header", "error", err)
+				return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+			}
+
+			csv_writer = wr
+		}
+
+		err = csv_writer.WriteRow(row)
+
+		if err != nil {
+			return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+		}
+
+		csv_writer.Flush()
+		return nil
+	}
+
+	// Set up Go routine to listen for events on the row channel (these will be dispatched
+	// from CompareLocationsForGeohash
 
 	go func() {
 
 		for {
 			select {
-			case <- done_ch:
+			case <-done_ch:
+				slog.Info("Received signal on done channel, exiting Go routine")
 				return
-			case row := <- row_ch:
-				
-				if csv_writer == nil {
-					
-					fieldnames := make([]string, 0)
-					
-					for k, _ := range row {
-						fieldnames = append(fieldnames, k)
-					}
-					
-					wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
-					
-					if err != nil {
-						slog.Error("Failed to create CSV writer", "error", err)
-						continue
-						// return fmt.Errorf("Failed to create CSV writer, %w", err)
-					}
-					
-					err = wr.WriteHeader()
-					
-					if err != nil {
-						slog.Error("Failed to write CSV header", "error", err)
-						continue
-						// return fmt.Errorf("Failed to write header for CSV writer, %w", err)
-					}
-					
-					csv_writer = wr
+			case err := <-err_ch:
+				slog.Error(err.Error())
+				done_ch <- true
+			case row := <-row_ch:
+
+				ids := []string{
+					row["source_id"],
+					row["target_id"],
 				}
-				
-				err = csv_writer.WriteRow(row)
-				
-				if err != nil {
-					slog.Error("Failed to write CSV row", "error", err)
-					continue
-					// return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+
+				sort.Strings(ids)
+				str_id := strings.Join(ids, "-")
+
+				_, exists := ids_seen.LoadOrStore(str_id, true)
+
+				if exists {
+					slog.Info("Row already processed", "ids", str_id)
+				} else {
+					err := write_row(row)
+
+					if err != nil {
+						err_ch <- err
+					}
 				}
-				
-				csv_writer.Flush()
+
 			}
 		}
 	}()
-	
+
+	// Iterate through the list of geohashes dispatching mulitple instances of
+	// CompareLocationsForGeohash in Go routines
+
 	for _, geohash := range geohashes {
 
 		<-throttle
@@ -208,7 +245,7 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			target_opts := &WriteLocationsWithGeohashOptions{
 				Database: target_database,
 				Logger:   logger,
-				Geohash:  geohash,				
+				Geohash:  geohash,
 				Writer:   target_wr,
 				Label:    "target",
 			}
@@ -248,7 +285,7 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 				VectorDatabaseURI: opts.VectorDatabaseURI,
 				Geohash:           geohash,
 				Threshold:         opts.Threshold,
-				RowChannel: row_ch,				
+				RowChannel:        row_ch,
 			}
 
 			err = CompareLocationsForGeohash(ctx, compare_opts)
@@ -261,10 +298,12 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	}
 
-	
+	// Wait for all the instances of CompareLocationsForGeohash to complete
 	wg.Wait()
 
+	// Stop the local Go route listening for RowChannel events
 	done_ch <- true
+
 	return nil
 }
 

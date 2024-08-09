@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
-	"io"
 	// "os"
 	"strings"
 	// "sync"
@@ -30,7 +30,7 @@ type CompareLocationsForGeohashOptions struct {
 	VectorDatabaseURI string
 	Geohash           string
 	Threshold         float64
-	RowChannel chan(map[string]string)
+	RowChannel        chan (map[string]string)
 }
 
 func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGeohashOptions) error {
@@ -80,11 +80,11 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	defer vector_db.Close(ctx)
-	
+
 	// Populate the vector database
 
 	count_sources := 0
-	
+
 	source_walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
 		var loc *location.Location
@@ -113,10 +113,10 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	defer source_r.Close()
-	
+
 	t1 := time.Now()
 
-	// logger.Info("Walk sources", "path", opts.SourceLocations)	
+	// logger.Info("Walk sources", "path", opts.SourceLocations)
 	err = walk_reader(ctx, source_r, source_walk_cb)
 
 	if err != nil {
@@ -124,9 +124,9 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	logger.Info("Time to index sources in vector db", "count", count_sources, "time", time.Since(t1))
-	
+
 	target_walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
-		
+
 		var loc *location.Location
 
 		err := json.Unmarshal(rec.Body, &loc)
@@ -156,10 +156,13 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 			if qr.ID == loc.ID {
 				continue
 			}
-			
+
 			logger.Debug("Possible", "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
 			// Make this a toggle...
+
+			// ok, err := vec_db.MeetsThreshold(ctx, qr, threshold)
+			
 			if float64(qr.Similarity) > threshold {
 				continue
 			}
@@ -189,10 +192,10 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	defer target_r.Close()
-	
+
 	t2 := time.Now()
 
-	logger.Info("Walk targets", "path", opts.TargetLocations)	
+	logger.Info("Walk targets", "path", opts.TargetLocations)
 	err = walk_reader(ctx, target_r, target_walk_cb)
 
 	if err != nil {
@@ -200,11 +203,11 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	logger.Info("Time to index targets in vector db", "time", time.Since(t2))
-	
+
 	return nil
 }
 
-func walk_reader (ctx context.Context, r io.Reader, cb func(ctx context.Context, path string, rec *walk.WalkRecord) error) error {
+func walk_reader(ctx context.Context, r io.Reader, cb func(ctx context.Context, path string, rec *walk.WalkRecord) error) error {
 
 	// walk_ctx, cancel := context.WithCancel(ctx)
 	// defer cancel()
@@ -231,7 +234,7 @@ func walk_reader (ctx context.Context, r io.Reader, cb func(ctx context.Context,
 				err := cb(ctx, r.Path, r)
 
 				r.CompletedChannel <- true
-				
+
 				if err != nil {
 					error_ch <- &walk.WalkError{
 						Path:       r.Path,
@@ -246,14 +249,21 @@ func walk_reader (ctx context.Context, r io.Reader, cb func(ctx context.Context,
 	walk_opts := &walk.WalkOptions{
 		RecordChannel: record_ch,
 		ErrorChannel:  error_ch,
-		DoneChannel: done_ch,
+		DoneChannel:   done_ch,
+		// This is necessary in order to force the jsonl/walk code to block
+		// long enough for the callbacks above to execute. For very small
+		// comparison tasks (like 1-5 records) it can happen that the walk
+		// process completes as soon as all the r := <-record_ch events
+		// have been received and dispatching walk_opts.DoneChannel before
+		// any work happens. I was under the impression that r := <-record_ch
+		// blocks but apparently not.
 		SendCompletedChannel: true,
-		Workers:       10,
+		Workers:              10,
 	}
 
 	go walk.WalkReader(ctx, walk_opts, r)
 
-	<- walk_opts.DoneChannel
+	<-walk_opts.DoneChannel
 
 	if walk_err != nil && !walk.IsEOFError(walk_err) {
 		return fmt.Errorf("Failed to walk document, %v", walk_err)

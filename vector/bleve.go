@@ -34,6 +34,7 @@ import (
 type BleveDatabase struct {
 	index    bleve.Index
 	embedder embeddings.Embedder
+	tmp_file string
 }
 
 type BleveDocument struct {
@@ -81,42 +82,32 @@ func NewBleveDatabase(ctx context.Context, uri string) (Database, error) {
 	var idx bleve.Index
 	db_path := u.Path
 
-	_, err = os.Stat(db_path)
+	db_path, tmp_file, err := EntempifyURI(db_path)
 
-	if err == nil {
+	if err != nil {
+		return nil, fmt.Errorf("Failed to entempify URI, %w", err)
+	}
 
-		v, err := bleve.Open(db_path)
+	textFieldMapping := mapping.NewTextFieldMapping()
+	vectorFieldMapping := mapping.NewVectorFieldMapping()
+	vectorFieldMapping.Dims = dims
+	vectorFieldMapping.Similarity = "l2_norm" // euclidean distance
 
-		if err != nil {
-			return nil, fmt.Errorf("Failed to open '%s', %w", db_path, err)
-		}
+	bleveMapping := bleve.NewIndexMapping()
+	bleveMapping.DefaultMapping.Dynamic = false
+	bleveMapping.DefaultMapping.AddFieldMappingsAt("name", textFieldMapping)
+	bleveMapping.DefaultMapping.AddFieldMappingsAt("vec", vectorFieldMapping)
 
-		idx = v
+	idx, err := bleve.New(db_path, bleveMapping)
 
-	} else {
-
-		textFieldMapping := mapping.NewTextFieldMapping()
-		vectorFieldMapping := mapping.NewVectorFieldMapping()
-		vectorFieldMapping.Dims = dims
-		vectorFieldMapping.Similarity = "l2_norm" // euclidean distance
-
-		bleveMapping := bleve.NewIndexMapping()
-		bleveMapping.DefaultMapping.Dynamic = false
-		bleveMapping.DefaultMapping.AddFieldMappingsAt("name", textFieldMapping)
-		bleveMapping.DefaultMapping.AddFieldMappingsAt("vec", vectorFieldMapping)
-
-		v, err := bleve.New(db_path, bleveMapping)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create db at '%s', %w", db_path, err)
-		}
-
-		idx = v
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create db at '%s', %w", db_path, err)
 	}
 
 	db := &BleveDatabase{
 		index:    idx,
 		embedder: embdr,
+		tmp_file: tmp_file,
 	}
 
 	return db, nil
@@ -176,5 +167,20 @@ func (db *BleveDatabase) Flush(ctx context.Context) error {
 }
 
 func (db *BleveDatabase) Close(ctx context.Context) error {
+
+	err := db.idx.Close()
+
+	if err != nil {
+		return err
+	}
+
+	if tmp_file != "" {
+		err := os.Remove(tmp_file)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

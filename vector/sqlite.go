@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
+	// "strings"
 	"time"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
@@ -66,38 +66,47 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
-	is_tmp := false
-	tmp_path := ""
-
 	q := u.Query()
 	dsn := q.Get("dsn")
 
-	if strings.HasPrefix(dsn, "{tmp}") {
+	dsn, tmp_path, err := EntempifyURI(dsn)
 
-		slog.Debug("DSN is tmp file", "dsn", dsn)
-		u, err := url.Parse(dsn)
-
-		if err != nil {
-			return nil, err
-		}
-
-		path := u.Path
-		q := u.Query()
-
-		suffix := strings.Replace(path, "{tmp}", "*-", 1)
-
-		f, err := os.CreateTemp("", suffix)
-
-		if err != nil {
-			return nil, err
-		}
-
-		tmp_path = f.Name()
-		is_tmp = true
-
-		dsn = fmt.Sprintf("%s?%s", tmp_path, q.Encode())
-		slog.Debug("DSN is tmp file (final)", "dsn", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to entempify DSN, %w", err)
 	}
+
+	/*
+		is_tmp := false
+		tmp_path := ""
+
+
+		if strings.HasPrefix(dsn, "{tmp}") {
+
+			slog.Debug("DSN is tmp file", "dsn", dsn)
+			u, err := url.Parse(dsn)
+
+			if err != nil {
+				return nil, err
+			}
+
+			path := u.Path
+			q := u.Query()
+
+			suffix := strings.Replace(path, "{tmp}", "*-", 1)
+
+			f, err := os.CreateTemp("", suffix)
+
+			if err != nil {
+				return nil, err
+			}
+
+			tmp_path = f.Name()
+			is_tmp = true
+
+			dsn = fmt.Sprintf("%s?%s", tmp_path, q.Encode())
+			slog.Debug("DSN is tmp file (final)", "dsn", dsn)
+		}
+	*/
 
 	dimensions := 768
 	max_distance := float32(5.0)
@@ -243,7 +252,6 @@ func NewSQLiteDatabase(ctx context.Context, uri string) (Database, error) {
 		max_results:  max_results,
 		compression:  compression,
 		refresh:      refresh,
-		is_tmp:       is_tmp,
 		tmp_path:     tmp_path,
 	}
 
@@ -439,7 +447,7 @@ func (db *SQLiteDatabase) Close(ctx context.Context) error {
 		return err
 	}
 
-	if db.is_tmp {
+	if db.tmp_path != "" {
 
 		slog.Debug("Remove tmp db", "path", db.tmp_path)
 		err := os.Remove(db.tmp_path)
