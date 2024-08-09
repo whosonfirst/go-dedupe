@@ -30,6 +30,10 @@ func (db *NullDatabase) Query(ctx context.Context, loc *location.Location) ([]*Q
 	return results, nil
 }
 
+func (db *NullDatabase) MeetsThreshold(ctx context.Context, qr *QueryResult, threshold float64) (bool, error) {
+	return false, nil
+}
+
 func (db *NullDatabase) Flush(ctx context.Context) error {
 	return nil
 }

@@ -39,7 +39,7 @@ func NewChromemDatabase(ctx context.Context, uri string) (Database, error) {
 	}
 
 	col_name := u.Host
-	db_path := u.Path
+	// db_path := u.Path
 
 	q := u.Query()
 	model := q.Get("model")
@@ -101,6 +101,15 @@ func (db *ChromemDatabase) Query(ctx context.Context, loc *location.Location) ([
 	}
 
 	return results, nil
+}
+
+func (db *ChromemDatabase) MeetsThreshold(ctx context.Context, qr *QueryResult, threshold float64) (bool, error) {
+
+	if float64(qr.Similarity) > threshold {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (db *ChromemDatabase) Flush(ctx context.Context) error {

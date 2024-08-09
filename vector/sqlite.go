@@ -435,6 +435,15 @@ func (db *SQLiteDatabase) Query(ctx context.Context, loc *location.Location) ([]
 	return results, nil
 }
 
+func (db *SQLiteDatabase) MeetsThreshold(ctx context.Context, qr *QueryResult, threshold float64) (bool, error) {
+
+	if float64(qr.Similarity) > threshold {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (db *SQLiteDatabase) Flush(ctx context.Context) error {
 	return nil
 }
@@ -524,36 +533,4 @@ func (db *SQLiteDatabase) embeddings(ctx context.Context, loc *location.Location
 	}
 
 	return query, nil
-}
-
-func hasTable(ctx context.Context, db *sql.DB, table_name string) (bool, error) {
-
-	has_table := false
-
-	sql := "SELECT name FROM sqlite_master WHERE type='table'"
-
-	rows, err := db.QueryContext(ctx, sql)
-
-	if err != nil {
-		return false, fmt.Errorf("Failed to query sqlite_master, %w", err)
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var name string
-		err := rows.Scan(&name)
-
-		if err != nil {
-			return false, fmt.Errorf("Failed scan table name, %w", err)
-		}
-
-		if name == table_name {
-			has_table = true
-			break
-		}
-	}
-
-	return has_table, nil
 }

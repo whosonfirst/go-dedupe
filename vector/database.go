@@ -15,9 +15,9 @@ import (
 type Database interface {
 	Add(context.Context, *location.Location) error
 	Query(context.Context, *location.Location) ([]*QueryResult, error)
+	MeetsThreshold(context.Context, *QueryResult, float64) (bool, error)
 	Flush(context.Context) error
 	Close(context.Context) error
-	// MeetsThreshold(context.Context, *QueryResult, float64) (bool, error)
 }
 
 // DatabaseInitializationFunc is a function defined by individual database package and used to create

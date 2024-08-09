@@ -159,11 +159,14 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 			logger.Debug("Possible", "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
-			// Make this a toggle...
+			ok, err := vector_db.MeetsThreshold(ctx, qr, threshold)
 
-			// ok, err := vec_db.MeetsThreshold(ctx, qr, threshold)
-			
-			if float64(qr.Similarity) > threshold {
+			if err != nil {
+				logger.Error("Failed to determine if query result meets threshold", "id", qr.ID, "error", err)
+				continue
+			}
+
+			if !ok {
 				continue
 			}
 
