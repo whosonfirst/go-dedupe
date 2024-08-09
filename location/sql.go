@@ -141,7 +141,7 @@ func (db *SQLDatabase) GetById(ctx context.Context, id string) (*Location, error
 
 func (db *SQLDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
 
-	q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count DESC"
+	q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count ASC"
 	slog.Debug("Get geohashes", "query", q)
 
 	rows, err := db.conn.QueryContext(ctx, q)

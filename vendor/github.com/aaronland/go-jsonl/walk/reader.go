@@ -124,13 +124,26 @@ func WalkReader(ctx context.Context, opts *WalkOptions, fh io.Reader) {
 			body = pretty.Pretty(body)
 		}
 
+
+		
 		rec := &WalkRecord{
 			Path:       path,
 			LineNumber: lineno,
 			Body:       body,
 		}
 
+		var completed_ch chan bool
+		
+		if opts.SendCompletedChannel {
+			completed_ch = make(chan bool)
+			rec.CompletedChannel = completed_ch
+		}
+		
 		record_ch <- rec
+
+		if opts.SendCompletedChannel {		
+			<- completed_ch
+		}
 	}
 
 	done_ch <- true

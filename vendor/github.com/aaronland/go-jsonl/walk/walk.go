@@ -19,6 +19,7 @@ type WalkOptions struct {
 	RecordChannel chan *WalkRecord
 	ErrorChannel  chan *WalkError
 	DoneChannel   chan bool
+	SendCompletedChannel bool
 	ValidateJSON  bool
 	FormatJSON    bool
 	QuerySet      *query.QuerySet
@@ -30,6 +31,7 @@ type WalkRecord struct {
 	Path       string
 	LineNumber int
 	Body       []byte
+	CompletedChannel chan bool
 }
 
 type WalkError struct {

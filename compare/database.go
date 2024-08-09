@@ -14,6 +14,7 @@ import (
 
 	"github.com/sfomuseum/go-timings"
 	"github.com/whosonfirst/go-dedupe/location"
+	"github.com/sfomuseum/go-csvdict"	
 )
 
 type CompareLocationDatabasesOptions struct {
@@ -89,6 +90,59 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	wg := new(sync.WaitGroup)
 
+	var csv_writer *csvdict.Writer
+
+	done_ch := make(chan bool)
+	row_ch := make(chan map[string]string)
+
+	go func() {
+
+		for {
+			select {
+			case <- done_ch:
+				return
+			case row := <- row_ch:
+				
+				if csv_writer == nil {
+					
+					fieldnames := make([]string, 0)
+					
+					for k, _ := range row {
+						fieldnames = append(fieldnames, k)
+					}
+					
+					wr, err := csvdict.NewWriter(os.Stdout, fieldnames)
+					
+					if err != nil {
+						slog.Error("Failed to create CSV writer", "error", err)
+						continue
+						// return fmt.Errorf("Failed to create CSV writer, %w", err)
+					}
+					
+					err = wr.WriteHeader()
+					
+					if err != nil {
+						slog.Error("Failed to write CSV header", "error", err)
+						continue
+						// return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+					}
+					
+					csv_writer = wr
+				}
+				
+				err = csv_writer.WriteRow(row)
+				
+				if err != nil {
+					slog.Error("Failed to write CSV row", "error", err)
+					continue
+					// return fmt.Errorf("Failed to write header for CSV writer, %w", err)
+				}
+				
+				csv_writer.Flush()
+			}
+		}
+	}()
+	
 	for _, geohash := range geohashes {
 
 		<-throttle
@@ -154,7 +208,7 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			target_opts := &WriteLocationsWithGeohashOptions{
 				Database: target_database,
 				Logger:   logger,
-				Geohash:  geohash,
+				Geohash:  geohash,				
 				Writer:   target_wr,
 				Label:    "target",
 			}
@@ -194,6 +248,7 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 				VectorDatabaseURI: opts.VectorDatabaseURI,
 				Geohash:           geohash,
 				Threshold:         opts.Threshold,
+				RowChannel: row_ch,				
 			}
 
 			err = CompareLocationsForGeohash(ctx, compare_opts)
@@ -206,7 +261,10 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	}
 
+	
 	wg.Wait()
+
+	done_ch <- true
 	return nil
 }
 

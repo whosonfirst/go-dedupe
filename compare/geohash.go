@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
+	"io"
+	// "os"
 	"strings"
-	"sync"
-	_ "sync/atomic"
+	// "sync"
+	// "sync/atomic"
 	"time"
 
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
-	"github.com/sfomuseum/go-csvdict"
 	"github.com/whosonfirst/go-dedupe/location"
 	"github.com/whosonfirst/go-dedupe/vector"
-	"github.com/whosonfirst/go-overture/geojsonl"
+	// "github.com/whosonfirst/go-overture/geojsonl"
 )
 
 type CompareLocationsForGeohashOptions struct {
@@ -30,6 +30,7 @@ type CompareLocationsForGeohashOptions struct {
 	VectorDatabaseURI string
 	Geohash           string
 	Threshold         float64
+	RowChannel chan(map[string]string)
 }
 
 func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGeohashOptions) error {
@@ -45,10 +46,9 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 	logger.Debug("Compare locations", "source", opts.SourceLocations, "target", opts.TargetLocations)
 
-	buf_writer := os.Stdout
-	var csv_writer *csvdict.Writer
-
-	mu := new(sync.RWMutex)
+	// buf_writer := os.Stdout
+	// var csv_writer *csvdict.Writer
+	// mu := new(sync.RWMutex)
 
 	// Set up buckets
 
@@ -80,11 +80,11 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 	}
 
 	defer vector_db.Close(ctx)
-
+	
 	// Populate the vector database
 
 	count_sources := 0
-
+	
 	source_walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
 
 		var loc *location.Location
@@ -95,7 +95,7 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 			return fmt.Errorf("Failed to unmarshal record, %w", err)
 		}
 
-		// logger.Info("Add to vector database", "location", loc.String())
+		logger.Debug("Add to vector database", "location", loc.String())
 		err = vector_db.Add(ctx, loc)
 
 		if err != nil {
@@ -106,26 +106,27 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		return nil
 	}
 
-	source_walk_opts := &geojsonl.WalkOptions{
-		SourceBucket: source_bucket,
-		Callback:     source_walk_cb,
+	source_r, err := source_bucket.NewReader(ctx, opts.SourceLocations, nil)
+
+	if err != nil {
+		return err
 	}
 
+	defer source_r.Close()
+	
 	t1 := time.Now()
 
-	logger.Debug("Walk sources", "path", opts.SourceLocations)
-	err = geojsonl.Walk(ctx, source_walk_opts, opts.SourceLocations)
+	// logger.Info("Walk sources", "path", opts.SourceLocations)	
+	err = walk_reader(ctx, source_r, source_walk_cb)
 
 	if err != nil {
 		return fmt.Errorf("Failed to walk source locations, %w", err)
 	}
 
 	logger.Info("Time to index sources in vector db", "count", count_sources, "time", time.Since(t1))
-
-	//
-
+	
 	target_walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
-
+		
 		var loc *location.Location
 
 		err := json.Unmarshal(rec.Body, &loc)
@@ -137,14 +138,14 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		geohash := opts.Geohash
 		threshold := opts.Threshold
 
-		logger.Debug("Compare location from target database", "geohash", geohash, "location", loc.String())
+		logger.Debug("Compare location from target database", "location", loc.String())
 
 		// t1 := time.Now()
 
 		results, err := vector_db.Query(ctx, loc)
 
 		if err != nil {
-			logger.Error("Failed to query", "geohash", geohash, "location", loc.String(), "error", err)
+			logger.Error("Failed to query", "location", loc.String(), "error", err)
 			return fmt.Errorf("Failed to query feature, %w", err)
 		}
 
@@ -152,18 +153,18 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 		for _, qr := range results {
 
-			logger.Info("Possible", "geohash", geohash, "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
+			if qr.ID == loc.ID {
+				continue
+			}
+			
+			logger.Debug("Possible", "similarity", qr.Similarity, "wof", loc.String(), "ov", qr.Content)
 
 			// Make this a toggle...
 			if float64(qr.Similarity) > threshold {
 				continue
 			}
 
-			if qr.ID == loc.ID {
-				continue
-			}
-
-			logger.Info("Match", "geohash", geohash, "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
+			logger.Info("Match", "threshold", threshold, "similarity", qr.Similarity, "query", loc.String(), "candidate", qr.Content)
 
 			row := map[string]string{
 				"geohash":    geohash,
@@ -174,62 +175,89 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 				"similarity": fmt.Sprintf("%02f", qr.Similarity),
 			}
 
-			mu.Lock()
-			defer mu.Unlock()
-
-			if csv_writer == nil {
-
-				fieldnames := make([]string, 0)
-
-				for k, _ := range row {
-					fieldnames = append(fieldnames, k)
-				}
-
-				wr, err := csvdict.NewWriter(buf_writer, fieldnames)
-
-				if err != nil {
-					return fmt.Errorf("Failed to create CSV writer, %w", err)
-				}
-
-				err = wr.WriteHeader()
-
-				if err != nil {
-					return fmt.Errorf("Failed to write header for CSV writer, %w", err)
-				}
-
-				csv_writer = wr
-			}
-
-			err = csv_writer.WriteRow(row)
-
-			if err != nil {
-				return fmt.Errorf("Failed to write header for CSV writer, %w", err)
-			}
-
-			csv_writer.Flush()
+			opts.RowChannel <- row
 			break
 		}
 
 		return nil
 	}
 
-	target_walk_opts := &geojsonl.WalkOptions{
-		SourceBucket: target_bucket,
-		Callback:     target_walk_cb,
+	target_r, err := target_bucket.NewReader(ctx, opts.TargetLocations, nil)
+
+	if err != nil {
+		return err
 	}
 
+	defer target_r.Close()
+	
 	t2 := time.Now()
 
-	logger.Debug("Walk target", "path", opts.TargetLocations)
-	err = geojsonl.Walk(ctx, target_walk_opts, opts.TargetLocations)
+	logger.Info("Walk targets", "path", opts.TargetLocations)	
+	err = walk_reader(ctx, target_r, target_walk_cb)
 
 	if err != nil {
 		return fmt.Errorf("Failed to walk target locations, %w", err)
 	}
 
-	logger.Info("Time to compare targets against source vector db", "time", time.Since(t2))
+	logger.Info("Time to index targets in vector db", "time", time.Since(t2))
+	
+	return nil
+}
 
-	// Write CSV buffer to opts.WriterBucket here...
+func walk_reader (ctx context.Context, r io.Reader, cb func(ctx context.Context, path string, rec *walk.WalkRecord) error) error {
+
+	// walk_ctx, cancel := context.WithCancel(ctx)
+	// defer cancel()
+
+	var walk_err error
+
+	record_ch := make(chan *walk.WalkRecord)
+	error_ch := make(chan *walk.WalkError)
+	done_ch := make(chan bool)
+
+	go func() {
+
+		for {
+			select {
+			case <-ctx.Done():
+				done_ch <- true
+				return
+			case err := <-error_ch:
+				slog.Error("Walk error", "error", err)
+				walk_err = err
+				done_ch <- true
+			case r := <-record_ch:
+
+				err := cb(ctx, r.Path, r)
+
+				r.CompletedChannel <- true
+				
+				if err != nil {
+					error_ch <- &walk.WalkError{
+						Path:       r.Path,
+						LineNumber: r.LineNumber,
+						Err:        fmt.Errorf("Failed to index feature, %w", err),
+					}
+				}
+			}
+		}
+	}()
+
+	walk_opts := &walk.WalkOptions{
+		RecordChannel: record_ch,
+		ErrorChannel:  error_ch,
+		DoneChannel: done_ch,
+		SendCompletedChannel: true,
+		Workers:       10,
+	}
+
+	go walk.WalkReader(ctx, walk_opts, r)
+
+	<- walk_opts.DoneChannel
+
+	if walk_err != nil && !walk.IsEOFError(walk_err) {
+		return fmt.Errorf("Failed to walk document, %v", walk_err)
+	}
 
 	return nil
 }
