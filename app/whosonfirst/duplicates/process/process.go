@@ -15,6 +15,7 @@ import (
 
 	"github.com/sfomuseum/go-csvdict"
 	"github.com/sfomuseum/go-flags/flagset"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
@@ -253,10 +254,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 				continue
 			}
 
-			source_lastmod := properties.LastModified(source_f)
-			target_lastmod := properties.LastModified(target_f)
-
-			logger.Debug("Last mod", "source", source_lastmod, "target", target_lastmod)
+			// START OF put me in a function
 
 			var valid_id int64
 			var valid_f []byte
@@ -264,9 +262,15 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 			var invalid_id int64
 			var invalid_f []byte
 
-			if source_lastmod == target_lastmod {
+			source_geom := gjson.GetBytes(source_f, "properties.src:geom").String()
+			target_geom := gjson.GetBytes(target_f, "properties.src:geom").String()
 
-				if source_id > target_id {
+			source_lastmod := properties.LastModified(source_f)
+			target_lastmod := properties.LastModified(target_f)
+
+			if source_geom == "mapzen" || target_geom == "mapzen" {
+
+				if source_geom == "mapzen" {
 
 					valid_id = source_id
 					valid_f = source_f
@@ -283,25 +287,51 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					invalid_f = source_f
 				}
 
-			} else {
+				logger.Debug("Mapzen it up", "valid", valid_id, "invalid", invalid_id)
+			}
 
-				if source_lastmod > target_lastmod {
+			if valid_id == 0 {
 
-					valid_id = source_id
-					valid_f = source_f
+				if source_lastmod == target_lastmod {
 
-					invalid_id = target_id
-					invalid_f = target_f
+					if source_id > target_id {
+
+						valid_id = source_id
+						valid_f = source_f
+
+						invalid_id = target_id
+						invalid_f = target_f
+
+					} else {
+
+						valid_id = target_id
+						valid_f = target_f
+
+						invalid_id = source_id
+						invalid_f = source_f
+					}
 
 				} else {
 
-					valid_id = target_id
-					valid_f = target_f
+					if source_lastmod > target_lastmod {
 
-					invalid_id = source_id
-					invalid_f = source_f
+						valid_id = source_id
+						valid_f = source_f
+
+						invalid_id = target_id
+						invalid_f = target_f
+
+					} else {
+
+						valid_id = target_id
+						valid_f = target_f
+
+						invalid_id = source_id
+						invalid_f = source_f
+					}
 				}
 			}
+			// END OF put me in a function
 
 			logger = logger.With("valid", valid_id)
 			logger = logger.With("invalid", invalid_id)
@@ -335,7 +365,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 			if err != nil {
 				logger.Error("Failed to write updates for valid record", "error", err)
 			} else {
-				logger.Info("Updated valid record")
+				// logger.Info("Updated valid record")
 			}
 
 			err = write_updates(ctx, wr, invalid_f, invalid_updates)
@@ -343,7 +373,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 			if err != nil {
 				logger.Error("Failed to write updates for invalid record", "error", err)
 			} else {
-				logger.Info("Updated invalid record")
+				// logger.Info("Updated invalid record")
 			}
 
 		}
