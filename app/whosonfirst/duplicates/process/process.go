@@ -155,6 +155,8 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 			if source_d != "" {
 
+				// START OF all of this could be put in an func(this, that) function
+
 				source_superseded_by := properties.SupersededBy(source_f)
 
 				if slices.Contains(source_superseded_by, target_id) {
@@ -177,14 +179,37 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					slog.Error("Failed to write updates for source", "error", err)
 				}
 
-				logger.Info("Wrote updates for source")
+				logger.Info("Wrote superseded_by updates for source")
 
 				// Check supersedes for target here
+
+				target_supersedes := properties.Supersedes(target_f)
+
+				if !slices.Contains(target_supersedes, source_id) {
+
+					target_supersedes = append(target_supersedes, source_id)
+
+					target_updates := map[string]interface{}{
+						"properties.wof:supersedes": target_supersedes,
+					}
+
+					err := write_updates(ctx, wr, target_f, target_updates)
+
+					if err != nil {
+						slog.Error("Failed to write supersedes updates for target", "error", err)
+					}
+
+					logger.Info("Wrote supersedes updates for target")
+				}
+
+				// END OF all of this could be put in an func(this, that) function
 
 				continue
 			}
 
 			if target_d != "" {
+
+				// See notes about a func(this, that) function above
 
 				target_superseded_by := properties.SupersededBy(target_f)
 
@@ -205,12 +230,29 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 				err := write_updates(ctx, wr, target_f, target_updates)
 
 				if err != nil {
-					slog.Error("Failed to write updates for target", "error", err)
+					slog.Error("Failed to write superseded_by updates for target", "error", err)
 				}
 
-				logger.Info("Wrote updates for target")
+				logger.Info("Wrote superseded_by updates for target")
 
-				// Check supersedes for source here
+				source_supersedes := properties.Supersedes(source_f)
+
+				if !slices.Contains(source_supersedes, target_id) {
+
+					source_supersedes = append(source_supersedes, target_id)
+
+					source_updates := map[string]interface{}{
+						"properties.wof:supersedes": source_supersedes,
+					}
+
+					err := write_updates(ctx, wr, source_f, source_updates)
+
+					if err != nil {
+						slog.Error("Failed to write supersedes updates for source", "error", err)
+					}
+
+					logger.Info("Wrote supersedes updates for source")
+				}
 
 				continue
 			}
