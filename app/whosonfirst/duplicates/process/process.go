@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/sfomuseum/go-csvdict"
-	"github.com/whosonfirst/go-reader"
-	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
-	// wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-dedupe"
+	"github.com/whosonfirst/go-reader"
+	"github.com/whosonfirst/go-whosonfirst-export/v2"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
+	wof_reader "github.com/whosonfirst/go-whosonfirst-reader"
+	wof_writer "github.com/whosonfirst/go-whosonfirst-writer/v3"
 	"github.com/whosonfirst/go-writer/v3"
 )
 
@@ -47,9 +51,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create new writer, %w", err)
 	}
 
-	slog.Debug("debug", "wr", wr)
-
 	id_prefix := fmt.Sprintf("%s:id=", dedupe.WHOSONFIRST_PREFIX)
+
+	dupes := new(sync.Map)
 
 	for _, path := range csv_dupes {
 
@@ -84,6 +88,21 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 				continue
 			}
 
+			targets := []string{
+				ns_source,
+				ns_target,
+			}
+
+			sort.Strings(targets)
+			key := strings.Join(targets, "-")
+
+			_, seen := dupes.LoadOrStore(key, true)
+
+			if seen {
+				slog.Debug("Already processed, skipping", "key", key)
+				continue
+			}
+
 			str_source := strings.Replace(ns_source, id_prefix, "", 1)
 			str_target := strings.Replace(ns_target, id_prefix, "", 1)
 
@@ -101,24 +120,122 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 				continue
 			}
 
+			logger := slog.Default()
+			logger = logger.With("source", source_id)
+			logger = logger.With("target", target_id)
+
 			source_f, err := wof_reader.LoadBytes(ctx, r, source_id)
 
 			if err != nil {
-				slog.Error("Failed to load source record, skipping", "id", source_id, "error", err)
+				logger.Error("Failed to load source record, skipping", "error", err)
 				continue
 			}
 
 			target_f, err := wof_reader.LoadBytes(ctx, r, target_id)
 
 			if err != nil {
-				slog.Error("Failed to load target record, skipping", "id", target_id, "error", err)
+				logger.Error("Failed to load target record, skipping", "error", err)
 				continue
 			}
 
 			source_lastmod := properties.LastModified(source_f)
 			target_lastmod := properties.LastModified(target_f)
 
-			slog.Info("Last mod", "source", source_lastmod, "target", target_lastmod)
+			logger.Debug("Last mod", "source", source_lastmod, "target", target_lastmod)
+
+			source_d := properties.Deprecated(source_f)
+			target_d := properties.Deprecated(target_f)
+
+			logger = logger.With("source deprecated", source_d)
+			logger = logger.With("target deprecated", target_d)
+
+			if source_d != "" && target_d != "" {
+				continue
+			}
+
+			if source_d != "" {
+
+				source_superseded_by := properties.SupersededBy(source_f)
+
+				if slices.Contains(source_superseded_by, target_id) {
+					logger.Debug("Source is deprecated and already superseded by target, skipping")
+					continue
+				}
+
+				logger.Info("Update superseded by for source", "source superseded_by", source_superseded_by)
+
+				source_superseded_by = append(source_superseded_by, target_id)
+
+				source_updates := map[string]interface{}{
+					"properties.wof:superseded_by": source_superseded_by,
+					"properties.mz:is_current":     0,
+				}
+
+				err := write_updates(ctx, wr, source_f, source_updates)
+
+				if err != nil {
+					slog.Error("Failed to write updates for source", "error", err)
+				}
+
+				logger.Info("Wrote updates for source")
+
+				// Check supersedes for target here
+
+				continue
+			}
+
+			if target_d != "" {
+
+				target_superseded_by := properties.SupersededBy(target_f)
+
+				if slices.Contains(target_superseded_by, source_id) {
+					logger.Debug("Target is already superseded by source, skipping")
+					continue
+				}
+
+				logger.Info("Update superseded by for target", "target superseded by", target_superseded_by)
+
+				target_superseded_by = append(target_superseded_by, source_id)
+
+				target_updates := map[string]interface{}{
+					"properties.wof:superseded_by": target_superseded_by,
+					"properties.mz:is_current":     0,
+				}
+
+				err := write_updates(ctx, wr, target_f, target_updates)
+
+				if err != nil {
+					slog.Error("Failed to write updates for target", "error", err)
+				}
+
+				logger.Info("Wrote updates for target")
+
+				// Check supersedes for source here
+
+				continue
+			}
+
+			// logger.Info("PROCESS")
+		}
+	}
+
+	return nil
+}
+
+func write_updates(ctx context.Context, wr writer.Writer, body []byte, updates map[string]interface{}) error {
+
+	has_changes, new_body, err := export.AssignPropertiesIfChanged(ctx, body, updates)
+
+	if err != nil {
+		return fmt.Errorf("Failed to assign properties, %w", err)
+	}
+
+	if has_changes {
+
+		_, err := wof_writer.WriteBytes(ctx, wr, new_body)
+
+		if err != nil {
+			return fmt.Errorf("Failed to write updates, %w", err)
 		}
 	}
 
