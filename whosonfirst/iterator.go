@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/url"
 
 	"github.com/whosonfirst/go-dedupe/iterator"
@@ -33,6 +34,11 @@ func NewWhosOnFirstIterator(ctx context.Context, uri string) (iterator.Iterator,
 
 	q := u.Query()
 	iter_uri := q.Get("iterator-uri")
+
+	if iter_uri == "" {
+		iter_uri = "repo://?exclude=properties.edtf:deprecated=.*"
+		slog.Debug("No WOF iterator URI defined, assigning default URI", "uri", iter_uri)
+	}
 
 	i := &WhosOnFirstIterator{
 		iterator_uri: iter_uri,
