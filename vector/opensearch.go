@@ -111,7 +111,7 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 	// This assumes that the relevant index has already been created and configured
 	// to use an ML/embedding model. But what if did all of that on-the-fly at runtime
 	// here (and then tore down the index in the Close method below).
-	
+
 	os_index := dsn_u.Path
 	os_index = strings.TrimLeft(os_index, "/")
 
@@ -412,6 +412,6 @@ func (db *OpensearchDatabase) Close(ctx context.Context) error {
 
 	// See notes in NewOpensearchDatabase about creating indices on the
 	// fly and tearing them down here.
-	
+
 	return nil
 }
