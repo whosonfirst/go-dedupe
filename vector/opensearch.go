@@ -108,6 +108,10 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to parse dsn (%s), %w", dsn, err)
 	}
 
+	// This assumes that the relevant index has already been created and configured
+	// to use an ML/embedding model. But what if did all of that on-the-fly at runtime
+	// here (and then tore down the index in the Close method below).
+	
 	os_index := dsn_u.Path
 	os_index = strings.TrimLeft(os_index, "/")
 
@@ -390,11 +394,24 @@ func (db *OpensearchDatabase) Query(ctx context.Context, loc *location.Location)
 	return results, nil
 }
 
+func (db *OpensearchDatabase) MeetsThreshold(ctx context.Context, qr *QueryResult, threshold float64) (bool, error) {
+
+	if float64(qr.Similarity) > threshold {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (db *OpensearchDatabase) Flush(ctx context.Context) error {
 	db.waitGroup.Wait()
 	return nil
 }
 
 func (db *OpensearchDatabase) Close(ctx context.Context) error {
+
+	// See notes in NewOpensearchDatabase about creating indices on the
+	// fly and tearing them down here.
+	
 	return nil
 }
