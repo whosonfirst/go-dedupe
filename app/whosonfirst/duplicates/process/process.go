@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sfomuseum/go-csvdict"
 	"github.com/sfomuseum/go-flags/flagset"
@@ -138,11 +139,6 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 				continue
 			}
 
-			source_lastmod := properties.LastModified(source_f)
-			target_lastmod := properties.LastModified(target_f)
-
-			logger.Debug("Last mod", "source", source_lastmod, "target", target_lastmod)
-
 			source_d := properties.Deprecated(source_f)
 			target_d := properties.Deprecated(target_f)
 
@@ -164,7 +160,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					continue
 				}
 
-				logger.Info("Update superseded by for source", "source superseded_by", source_superseded_by)
+				logger.Debug("Update superseded by for source", "source superseded_by", source_superseded_by)
 
 				source_superseded_by = append(source_superseded_by, target_id)
 
@@ -179,7 +175,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					slog.Error("Failed to write updates for source", "error", err)
 				}
 
-				logger.Info("Wrote superseded_by updates for source")
+				logger.Debug("Wrote superseded_by updates for source")
 
 				// Check supersedes for target here
 
@@ -199,7 +195,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 						slog.Error("Failed to write supersedes updates for target", "error", err)
 					}
 
-					logger.Info("Wrote supersedes updates for target")
+					logger.Debug("Wrote supersedes updates for target")
 				}
 
 				// END OF all of this could be put in an func(this, that) function
@@ -218,7 +214,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					continue
 				}
 
-				logger.Info("Update superseded by for target", "target superseded by", target_superseded_by)
+				logger.Debug("Update superseded by for target", "target superseded by", target_superseded_by)
 
 				target_superseded_by = append(target_superseded_by, source_id)
 
@@ -233,7 +229,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 					slog.Error("Failed to write superseded_by updates for target", "error", err)
 				}
 
-				logger.Info("Wrote superseded_by updates for target")
+				logger.Debug("Wrote superseded_by updates for target")
 
 				source_supersedes := properties.Supersedes(source_f)
 
@@ -251,13 +247,105 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 						slog.Error("Failed to write supersedes updates for source", "error", err)
 					}
 
-					logger.Info("Wrote supersedes updates for source")
+					logger.Debug("Wrote supersedes updates for source")
 				}
 
 				continue
 			}
 
-			// logger.Info("PROCESS")
+			source_lastmod := properties.LastModified(source_f)
+			target_lastmod := properties.LastModified(target_f)
+
+			logger.Debug("Last mod", "source", source_lastmod, "target", target_lastmod)
+
+			var valid_id int64
+			var valid_f []byte
+
+			var invalid_id int64
+			var invalid_f []byte
+
+			if source_lastmod == target_lastmod {
+
+				if source_id > target_id {
+
+					valid_id = source_id
+					valid_f = source_f
+
+					invalid_id = target_id
+					invalid_f = target_f
+
+				} else {
+
+					valid_id = target_id
+					valid_f = target_f
+
+					invalid_id = source_id
+					invalid_f = source_f
+				}
+
+			} else {
+
+				if source_lastmod > target_lastmod {
+
+					valid_id = source_id
+					valid_f = source_f
+
+					invalid_id = target_id
+					invalid_f = target_f
+
+				} else {
+
+					valid_id = target_id
+					valid_f = target_f
+
+					invalid_id = source_id
+					invalid_f = source_f
+				}
+			}
+
+			logger = logger.With("valid", valid_id)
+			logger = logger.With("invalid", invalid_id)
+
+			logger.Debug("Process duplicates")
+
+			valid_supersedes := properties.Supersedes(valid_f)
+			invalid_superseded_by := properties.SupersededBy(invalid_f)
+
+			valid_updates := make(map[string]interface{})
+
+			if !slices.Contains(valid_supersedes, invalid_id) {
+				valid_supersedes = append(valid_supersedes, invalid_id)
+				valid_updates["properties.wof:supersedes"] = valid_supersedes
+			}
+
+			now := time.Now()
+
+			invalid_updates := map[string]interface{}{
+				"properties.mz:is_current":   0,
+				"properties.edtf:deprecated": now.Format("2006-01-02"),
+			}
+
+			if !slices.Contains(invalid_superseded_by, valid_id) {
+				invalid_superseded_by = append(invalid_superseded_by, valid_id)
+				invalid_updates["properties.wof:superseded_by"] = invalid_superseded_by
+			}
+
+			err = write_updates(ctx, wr, valid_f, valid_updates)
+
+			if err != nil {
+				logger.Error("Failed to write updates for valid record", "error", err)
+			} else {
+				logger.Info("Updated valid record")
+			}
+
+			err = write_updates(ctx, wr, invalid_f, invalid_updates)
+
+			if err != nil {
+				logger.Error("Failed to write updates for invalid record", "error", err)
+			} else {
+				logger.Info("Updated invalid record")
+			}
+
 		}
 	}
 
