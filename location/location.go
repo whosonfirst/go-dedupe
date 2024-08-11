@@ -28,7 +28,9 @@ type Location struct {
 	Address string `json:"address"`
 	// The principal centroid for the location
 	Centroid *orb.Point `json:"centroid"`
-	// An arbitrary dictionary of custom metadata properties for the location
+	// An arbitrary dictionary of custom metadata properties for the locations. There are a short list of
+	// reserved metadata keys which can be queried using the `ReservedMetadataKeys()` or `IsReservedMetadataKey(k)`
+	// methods.
 	Custom map[string]string `json:"custom,omitempty"`
 }
 
