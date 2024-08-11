@@ -13,11 +13,17 @@ import (
 type GetWithGeohashCallback func(context.Context, *Location) error
 type GetGeohashesCallback func(context.Context, string) error
 
+// Database is an interface for storing and querying `Location` records.
 type Database interface {
+	// AddLocation adds a `Location` record to the underlying database implementation.
 	AddLocation(context.Context, *Location) error
+	// GetById returns a `Location` record matching an identifier in the underlying database implementation.
 	GetById(context.Context, string) (*Location, error)
+	// GetGeohashes returns the unique set of geohashes for all the `Location` records stored in the underlying database implementation.
 	GetGeohashes(context.Context, GetGeohashesCallback) error
+	// GetWithGeohash returns all the `Location` records matching a given geohash in the underlying database implementation.
 	GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
+	// Close performs and terminating functions required by the database.
 	Close(context.Context) error
 }
 

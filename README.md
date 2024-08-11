@@ -58,6 +58,17 @@ type Location struct {
 
 ### iterator.Iterator
 
+```
+// Iterator is an interface for procesing arbitrary data sources that yield individual JSON-encoded GeoJSON Features.
+type Iterator interface {
+	// Waiting on Go 1.2.3
+	// Iterate(context.Context, ...string) iter.Seq2[*geojson.Feature, error]
+	IterateWithCallback(context.Context, IteratorCallback, ...string) error
+	// Close performs and terminating functions required by the iterator
+	Close(context.Context) error
+}
+```
+
 #### Implementations
 
 ##### alltheplaces.AllThePlacesIterator
@@ -69,7 +80,9 @@ type Location struct {
 ### location.Parser
 
 ```
+// Parser is an interface for derive `Location` records from JSON-encoded GeoJSON features.
 type Parser interface {
+	// Parse derives a `Location` record from a []byte array containing a JSON-encoded GeoJSON feature.
 	Parse(context.Context, []byte) (*Location, error)
 }
 ```
@@ -85,11 +98,17 @@ type Parser interface {
 ### location.Database
 
 ```
+// Database is an interface for storing and querying `Location` records.
 type Database interface {
+	// AddLocation adds a `Location` record to the underlying database implementation.
 	AddLocation(context.Context, *Location) error
+	// GetById returns a `Location` record matching an identifier in the underlying database implementation.
 	GetById(context.Context, string) (*Location, error)
+	// GetGeohashes returns the unique set of geohashes for all the `Location` records stored in the underlying database implementation.
 	GetGeohashes(context.Context, GetGeohashesCallback) error
+	// GetWithGeohash returns all the `Location` records matching a given geohash in the underlying database implementation.
 	GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
+	// Close performs and terminating functions required by the database.	
 	Close(context.Context) error
 }
 ```
@@ -105,8 +124,9 @@ type Database interface {
 ```
 // Embedder defines an interface for generating (vector) embeddings
 type Embedder interface {
-	// Embeddings returns the (vector) embeddings for a string.
+	// Embeddings returns the embeddings for a string as a list of float64 values.
 	Embeddings(context.Context, string) ([]float64, error)
+	// Embeddings32 returns the embeddings for a string as a list of float32 values.	
 	Embeddings32(context.Context, string) ([]float32, error)
 }
 ```
@@ -120,12 +140,15 @@ type Embedder interface {
 ### vector.Database
 
 ```
-// Database defines an interface for adding and querying locations to be deduplicated.
+// Database defines an interface for adding and querying vector embeddings of `location.Location` records.
 type Database interface {
+	// Add adds a `Location` record to the underlying database implementation.	
 	Add(context.Context, *location.Location) error
+	// Query results a list of `QueryResult` instances for records matching a `location.Location` in the underlying database implementation.
 	Query(context.Context, *location.Location) ([]*QueryResult, error)
+	// MeetsThreshold returns a boolean value indicating whether a `QueryResult` instance satisfies a given threshold value.
 	MeetsThreshold(context.Context, *QueryResult, float64) (bool, error)
-	Flush(context.Context) error
+	// Close performs and terminating functions required by the database.		
 	Close(context.Context) error
 }
 ```

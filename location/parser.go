@@ -10,7 +10,9 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
+// Parser is an interface for derive `Location` records from JSON-encoded GeoJSON features.
 type Parser interface {
+	// Parse derives a `Location` record from a []byte array containing a JSON-encoded GeoJSON feature.
 	Parse(context.Context, []byte) (*Location, error)
 }
 

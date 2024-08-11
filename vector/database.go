@@ -11,12 +11,15 @@ import (
 	"github.com/whosonfirst/go-dedupe/location"
 )
 
-// Database defines an interface for adding and querying locations to be deduplicated.
+// Database defines an interface for adding and querying vector embeddings of `location.Location` records.
 type Database interface {
+	// Add adds a `Location` record to the underlying database implementation.
 	Add(context.Context, *location.Location) error
+	// Query results a list of `QueryResult` instances for records matching a `location.Location` in the underlying database implementation.
 	Query(context.Context, *location.Location) ([]*QueryResult, error)
+	// MeetsThreshold returns a boolean value indicating whether a `QueryResult` instance satisfies a given threshold value.
 	MeetsThreshold(context.Context, *QueryResult, float64) (bool, error)
-	Flush(context.Context) error
+	// Close performs and terminating functions required by the database.
 	Close(context.Context) error
 }
 
