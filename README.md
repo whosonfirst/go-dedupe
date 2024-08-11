@@ -73,9 +73,51 @@ type Iterator interface {
 
 ##### alltheplaces.AllThePlacesIterator
 
+The `AllThePlacesIterator` processes one or more [All The Places](https://www.alltheplaces.xyz/) GeoJSON FeatureCollection files. For example:
+
+```
+$> go run cmd/index-locations/main.go \
+	-location-database-uri null:// \
+	-location-parser-uri alltheplaces:// \
+	-iterator-uri alltheplaces:// \
+	/usr/local/data/alltheplaces/*.geojson
+```
+
 ##### overture.OvertureIterator
 
+The `OvertureIterator` processes one or more JSON-L files (optionally bzip-compressed) containing Overture Data GeoJSON Feature records. For example:
+
+```
+$> go run cmd/index-locations/main.go \
+	-location-database-uri null:// \
+	-location-parser-uri overtureplaces:// \
+	-iterator-uri 'overture://?bucket-uri=file:///' \
+	/usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
+```
+
+Valid parameters for the `OvertureIterator` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| bucket-uri | A valid `gocloud.dev/blob` URI | yes | Default is `file:///` |
+
 ##### whosonfirst.WhosOnFirstIterator
+
+The `WhosOnFirstIterator` processes one or more GeoJSON features returned by an underlying [whosonfirst/go-whosonfirst-iterate/v2](https://github.com/whosonfirst/go-whosonfirst-iterate) instance. For example:
+
+```
+$> go run cmd/index-locations/main.go \
+	-location-database-uri null:// \
+	-location-parser-uri whosonfirst:// \
+	-iterator-uri 'whosonfirst://' \
+	/usr/local/data/whosonfirst-data-venue-us-ca
+```
+
+Valid parameters for the `WhosOnFirstIterator` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| iterator-uri | A valid `whosonfirst/go-whosonfirst-iterate/v2` URI | yes | Default is `repo://?exclude=properties.edtf:deprecated=.*` |
 
 ### location.Parser
 
@@ -275,6 +317,10 @@ $> go run cmd/migrate-deprecated-records/main.go \
 ```
 ...
 ```
+
+## Data sources (providers)
+
+* https://www.alltheplaces.xyz/
 
 ## See also
 

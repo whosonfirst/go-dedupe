@@ -46,6 +46,10 @@ func NewOvertureIterator(ctx context.Context, uri string) (iterator.Iterator, er
 
 	bucket_uri := q.Get("bucket-uri")
 
+	if bucket_uri == "" {
+		bucket_uri = "file:///"
+	}
+
 	source_bucket, err := bucket.OpenBucket(ctx, bucket_uri)
 
 	if err != nil {
