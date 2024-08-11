@@ -1,5 +1,43 @@
 # go-dedupe
 
+## Important
+
+None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
+
+## Example
+
+### Prune deprecated records
+
+```
+$> go run cmd/migrate-deprecated-records/main.go \
+	-source-repo /usr/local/data/whosonfirst-data-venue-us-ny \
+	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
+```
+
+### Build locations database
+
+```
+$> go run cmd/index-locations/main.go \
+	-iterator-uri whosonfirst:// \
+	-location-parser-uri whosonfirstvenues:// \
+	-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
+	/usr/local/data/whosonfirst-data-venue-us-ny/
+```
+
+### Compare records
+
+```
+$> go run cmd/compare-locations/main.go \
+	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
+	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
+	-workers 50 \
+	> /usr/local/data/wof-wof-ny.csv
+```
+
+### Process (and deprecate) duplicate records
+
+### Prune deprecated records (again)
+
 ## Notes
 
 Given 7.3M Overture places and containerized single-node OpenSearch instance (24GB) on an M-series laptop, storing dense vectors (768) for both name and address fields:
