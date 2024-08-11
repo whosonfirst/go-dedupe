@@ -142,7 +142,7 @@ func (db *SQLDatabase) GetById(ctx context.Context, id string) (*Location, error
 func (db *SQLDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
 
 	// To do: Make ASC / DESC a config option
-	
+
 	q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count DESC"
 	slog.Debug("Get geohashes", "query", q)
 

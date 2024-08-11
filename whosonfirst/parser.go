@@ -7,24 +7,23 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/location"
-	"github.com/whosonfirst/go-dedupe/parser"
 	"github.com/whosonfirst/go-whosonfirst-feature/properties"
 )
 
 type WhosOnFirstVenueParser struct {
-	parser.Parser
+	location.Parser
 }
 
 func init() {
 	ctx := context.Background()
-	err := parser.RegisterParser(ctx, "whosonfirstvenues", NewWhosOnFirstVenueParser)
+	err := location.RegisterParser(ctx, "whosonfirstvenues", NewWhosOnFirstVenueParser)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (parser.Parser, error) {
+func NewWhosOnFirstVenueParser(ctx context.Context, uri string) (location.Parser, error) {
 
 	p := &WhosOnFirstVenueParser{}
 

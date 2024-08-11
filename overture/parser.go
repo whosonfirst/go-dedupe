@@ -10,24 +10,23 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/location"
-	"github.com/whosonfirst/go-dedupe/parser"
 )
 
 type OverturePlaceParser struct {
-	parser.Parser
+	location.Parser
 	addr_keys []string
 }
 
 func init() {
 	ctx := context.Background()
-	err := parser.RegisterParser(ctx, "overtureplaces", NewOverturePlaceParser)
+	err := location.RegisterParser(ctx, "overtureplaces", NewOverturePlaceParser)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewOverturePlaceParser(ctx context.Context, uri string) (parser.Parser, error) {
+func NewOverturePlaceParser(ctx context.Context, uri string) (location.Parser, error) {
 
 	addr_keys := []string{
 		"freeform",

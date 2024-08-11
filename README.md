@@ -1,8 +1,23 @@
 # go-dedupe
 
+Go package for resolving duplicate "place" (or venue) locations.
+
 ## Important
 
-None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
+1. This code was written by and for the Who's On First project but many of the tools are data source (or provider) agnostic.
+
+2. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
+
+## Concepts
+
+This code works around (1) common struct and (5) interfaces, and their provider-specific implementations. They are:
+
+* `location.Location` – A Go language struct containing a normalized representation of a place or venue.
+* `iterator.Iterator` – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
+* `location.Parser` – A Go language interface for parsing JSON-encoded GeoJSON records and producing `location.Location` instances.
+* `location.Database` – A Go language interface for storing and querying `location.Location` records in a database.
+* `embeddings.Embedder` – A Go language interface for generating vector embeddings from input text.
+* `vector.Database` – A Go language ...
 
 ## Example
 

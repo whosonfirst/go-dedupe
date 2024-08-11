@@ -12,7 +12,6 @@ import (
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/iterator"
 	"github.com/whosonfirst/go-dedupe/location"
-	"github.com/whosonfirst/go-dedupe/parser"
 )
 
 func Run(ctx context.Context) error {
@@ -39,7 +38,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 	defer db.Close(ctx)
 
-	prsr, err := parser.NewParser(ctx, location_parser_uri)
+	prsr, err := location.NewParser(ctx, location_parser_uri)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create new location parser for '%s', %v", location_parser_uri, err)

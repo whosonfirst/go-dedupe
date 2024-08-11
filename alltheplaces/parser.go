@@ -11,24 +11,23 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-dedupe"
 	"github.com/whosonfirst/go-dedupe/location"
-	"github.com/whosonfirst/go-dedupe/parser"
 )
 
 type AllThePlacesVenueParser struct {
-	parser.Parser
+	location.Parser
 	addr_keys []string
 }
 
 func init() {
 	ctx := context.Background()
-	err := parser.RegisterParser(ctx, "alltheplaces", NewAllThePlacesVenueParser)
+	err := location.RegisterParser(ctx, "alltheplaces", NewAllThePlacesVenueParser)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewAllThePlacesVenueParser(ctx context.Context, uri string) (parser.Parser, error) {
+func NewAllThePlacesVenueParser(ctx context.Context, uri string) (location.Parser, error) {
 
 	addr_keys := []string{
 		"addr:street_address",

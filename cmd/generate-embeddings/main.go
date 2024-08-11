@@ -10,18 +10,19 @@ import (
 	_ "log/slog"
 	"os"
 
+	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
+	_ "github.com/whosonfirst/go-dedupe/overture"
+	_ "github.com/whosonfirst/go-dedupe/whosonfirst"
+	_ "github.com/whosonfirst/go-writer-jsonl/v3"
+	_ "gocloud.dev/blob/fileblob"
+
 	"github.com/aaronland/go-jsonl/walk"
 	"github.com/aaronland/gocloud-blob/bucket"
 	"github.com/sfomuseum/go-timings"
-	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
 	"github.com/whosonfirst/go-dedupe/embeddings"
-	_ "github.com/whosonfirst/go-dedupe/overture"
-	"github.com/whosonfirst/go-dedupe/parser"
-	_ "github.com/whosonfirst/go-dedupe/whosonfirst"
+	"github.com/whosonfirst/go-dedupe/location"
 	"github.com/whosonfirst/go-overture/geojsonl"
-	_ "github.com/whosonfirst/go-writer-jsonl/v3"
 	"github.com/whosonfirst/go-writer/v3"
-	_ "gocloud.dev/blob/fileblob"
 )
 
 type Row struct {
@@ -55,7 +56,7 @@ func main() {
 
 	ctx := context.Background()
 
-	prsr, err := parser.NewParser(ctx, parser_uri)
+	prsr, err := location.NewParser(ctx, parser_uri)
 
 	if err != nil {
 		log.Fatalf("Failed to create new parser, %v", err)
