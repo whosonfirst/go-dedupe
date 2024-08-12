@@ -10,7 +10,7 @@ Documentation, in particular the `godoc` documentation,  is incomplete at this t
 
 1. This code was written by and for the Who's On First project but many of the tools are data source (or provider) agnostic.
 2. This package contains a number of different implementations for a variety of data and storage providers. This reflects the ongoing investigatory nature of the code. At some point in the future some of these implementations may be moved in their own packages or removed entirely.
-3. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gentle "clue bats" are welcome.
+3. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. It can often hours, sometimes days, to process large datasets. Suggestions and gentle "clue bats" are welcome.
 
 ## Concepts
 
@@ -28,13 +28,13 @@ The basic working model is as follows:
 
 1. Given a data source or provider, iterate through its records generating and storing `location.Location` records.
 2. Given two databases of `location.Location` records, one of them the "source" and the other the "target":
-2a. Derive the set of unique 5-character geohashes from the records in the "target" database.
-2b. For each of those geohashes, find all the `location.Location` records in the "source" database which a matching geohash and index each record in a vector database.
-3. Store each matching ("source") `location.Location` record in a vector database deriving its embeddings using an `embeddings.Embedder` instance.
-4. Query each of the ("target") records matching a given geohash against the records in the vector database; as with the records in the second database, embeddings for each record in the first database are derived using an `embeddings.Embedder` instance.
-5. Matching records are emitted as CSV-encoded rows.
+3. Derive the set of unique 5-character geohashes from the records in the "target" database.
+4. For each of those geohashes, find all the `location.Location` records in the "source" database which a matching geohash and index each record in a vector database.
+5. Store each matching ("source") `location.Location` record in a vector database deriving its embeddings using an `embeddings.Embedder` instance.
+6. Query each of the ("target") records matching a given geohash against the records in the vector database; as with the records in the second database, embeddings for each record in the first database are derived using an `embeddings.Embedder` instance.
+7. Matching records are emitted as CSV-encoded rows.
 
-For a concrete example, have a look at the code in [app/locations/index](app/locations/index), [app/locations/compare](app/locations/compare) and the [compare](compare) package.
+What happens with those CSV rows of matching records is left for implementors to decide. For a concrete example, have a look at the code in [app/locations/index](app/locations/index), [app/locations/compare](app/locations/compare) and the [compare](compare) package.
 
 There are a few things to note about this approach:
 
