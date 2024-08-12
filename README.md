@@ -4,234 +4,45 @@ Go package for resolving duplicate "place" (or venue) locations.
 
 ## Documentation
 
-Documentation is incomplete at this time.
+Documentation, in particular the `godoc` documentation,  is incomplete at this time.
 
 ## Important
 
 1. This code was written by and for the Who's On First project but many of the tools are data source (or provider) agnostic.
-2. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
-3. This package contains a number of different implementations for a variety of data and storage providers. This reflects the ongoing investigatory nature of the code. At some point in the future some of these implementations may be moved in their own packages or removed entirely.
+2. This package contains a number of different implementations for a variety of data and storage providers. This reflects the ongoing investigatory nature of the code. At some point in the future some of these implementations may be moved in their own packages or removed entirely.
+3. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
 
 ## Concepts
 
 This code works around (1) common struct and (5) interfaces, and their provider-specific implementations. They are:
 
-* `location.Location` – A Go language struct containing a normalized representation of a place or venue.
+* [location.Location](location/README.md) – A Go language struct containing a normalized representation of a place or venue.
 
-* `iterator.Iterator` – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
-* `location.Parser` – A Go language interface for parsing JSON-encoded GeoJSON records and producing `location.Location` instances.
-* `location.Database` – A Go language interface for storing and querying `location.Location` records.
-* `embeddings.Embedder` – A Go language interface for generating vector embeddings from input text.
-* `vector.Database` – A Go language interface for storing and querying vector embeddings.
+* [iterator.Iterator](iterator/README.md) – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
+* [location.Parser](location/README.md) – A Go language interface for parsing JSON-encoded GeoJSON records and producing `location.Location` instances.
+* [location.Database](location/README.md) – A Go language interface for storing and querying `location.Location` records.
+* [embeddings.Embedder](embeddings/README.md) – A Go language interface for generating vector embeddings from input text.
+* [vector.Database](vector/README.md) – A Go language interface for storing and querying vector embeddings.
 
 The basic working model is as follows:
 
 1. Given a data source or provider, iterate through its records generating and storing `location.Location` records.
-2. Given two databases of `location.Location` records:
-2a. Derive the set of unique 5-character geohashes from the records in the first database.
-2b. For each of those geohashes, find all the `location.Location` records in the second database which a matching geohash and index each record in a vector database.
-3. Before a `location.Location` record is stored in a vector database its vector embeddings are derived using an `embeddings.Embedder` instance.
-4. Query each of the records matching a given geohash against the records in the vector database; as with the records in the second database, embeddings for each record in the first database are derived using an `embeddings.Embedder` instance.
+2. Given two databases of `location.Location` records, one of them the "source" and the other the "target":
+2a. Derive the set of unique 5-character geohashes from the records in the "target" database.
+2b. For each of those geohashes, find all the `location.Location` records in the "source" database which a matching geohash and index each record in a vector database.
+3. Store each matching ("source") `location.Location` record in a vector database deriving its embeddings using an `embeddings.Embedder` instance.
+4. Query each of the ("target") records matching a given geohash against the records in the vector database; as with the records in the second database, embeddings for each record in the first database are derived using an `embeddings.Embedder` instance.
 5. Matching records are emitted as CSV-encoded rows.
 
-For a concrete example, have a look at the code in [app/locations/index](app/locations/index) and [app/locations/compare](app/locations/compare).
+For a concrete example, have a look at the code in [app/locations/index](app/locations/index), [app/locations/compare](app/locations/compare) and the [compare](compare) package.
 
-### location.Location
+There are a few things to note about this approach:
 
-```
-// Location defines a common format for locations for the purposes of deduplication
-type Location struct {
-	// The unique ID for the location which is expected to take the form of "{SOURCE_PREFIX}:id={UNIQUE ID}"
-	ID string `json:"id"`
-	// The name of the location
-	Name string `json:"name"`
-	// The complete address of the location
-	Address string `json:"address"`
-	// The principal centroid for the location
-	Centroid *orb.Point `json:"centroid"`
-	// An arbitrary dictionary of custom metadata properties for the locations. There are a short list of
-	// reserved metadata keys which can be queried using the `ReservedMetadataKeys()` or `IsReservedMetadataKey(k)`
-	// methods.
-	Custom map[string]string `json:"custom,omitempty"`
-}
-```
+* A 5-character geohash represents an area of approximately 2.4 km. In the future it may be the case that a longer geohash will be stored (in the location database) and a variable length geohash will be queried based on properties that can be derived about a location. For example, a venue in the center of Manhattan might use a longer, more precise geohash, versus a venue in a rural area might use a shorter, more inclusive, geohash.
+* Likewise, if `location.Location` records have been supplemented with Who's On First hierarchies (on ingest or at runtime) then they might also be filtered by geohash _and_ region to account for the fact that the same geohash can span multiple administrative boundaries.
+* This code works best with small and short-lived (temporary) vector databases on disk or in memory. Storing and querying millions of venue records and their embeddings on consumer grade hardware (my laptop) is generally slow and impractical. Many (but not all, yet) of the `vector.Database` implementations have been configured with the ability to create (and remove) temporary databases automatically. Details are discussed below.
 
-### iterator.Iterator
-
-```
-// Iterator is an interface for procesing arbitrary data sources that yield individual JSON-encoded GeoJSON Features.
-type Iterator interface {
-	// Waiting on Go 1.2.3
-	// Iterate(context.Context, ...string) iter.Seq2[*geojson.Feature, error]
-	IterateWithCallback(context.Context, IteratorCallback, ...string) error
-	// Close performs and terminating functions required by the iterator
-	Close(context.Context) error
-}
-```
-
-#### Implementations
-
-##### alltheplaces.AllThePlacesIterator
-
-The `AllThePlacesIterator` processes one or more [All The Places](https://www.alltheplaces.xyz/) GeoJSON FeatureCollection files. For example:
-
-```
-$> go run cmd/index-locations/main.go \
-	-location-database-uri null:// \
-	-location-parser-uri alltheplaces:// \
-	-iterator-uri alltheplaces:// \
-	/usr/local/data/alltheplaces/*.geojson
-```
-
-##### overture.OvertureIterator
-
-The `OvertureIterator` processes one or more JSON-L files (optionally bzip-compressed) containing Overture Data GeoJSON Feature records. For example:
-
-```
-$> go run cmd/index-locations/main.go \
-	-location-database-uri null:// \
-	-location-parser-uri overtureplaces:// \
-	-iterator-uri 'overture://?bucket-uri=file:///' \
-	/usr/local/data/overture/places-geojson/venues-0.95.geojsonl.bz2
-```
-
-Valid parameters for the `OvertureIterator` implemetation are:
-
-| Name | Value | Required | Notes |
-| --- | --- | --- | --- |
-| bucket-uri | A valid `gocloud.dev/blob` URI | yes | Default is `file:///` |
-
-##### whosonfirst.WhosOnFirstIterator
-
-The `WhosOnFirstIterator` processes one or more GeoJSON features returned by an underlying [whosonfirst/go-whosonfirst-iterate/v2](https://github.com/whosonfirst/go-whosonfirst-iterate) instance. For example:
-
-```
-$> go run cmd/index-locations/main.go \
-	-location-database-uri null:// \
-	-location-parser-uri whosonfirst:// \
-	-iterator-uri 'whosonfirst://' \
-	/usr/local/data/whosonfirst-data-venue-us-ca
-```
-
-Valid parameters for the `WhosOnFirstIterator` implemetation are:
-
-| Name | Value | Required | Notes |
-| --- | --- | --- | --- |
-| iterator-uri | A valid `whosonfirst/go-whosonfirst-iterate/v2` URI | yes | Default is `repo://?exclude=properties.edtf:deprecated=.*` |
-
-### location.Parser
-
-```
-// Parser is an interface for derive `Location` records from JSON-encoded GeoJSON features.
-type Parser interface {
-	// Parse derives a `Location` record from a []byte array containing a JSON-encoded GeoJSON feature.
-	Parse(context.Context, []byte) (*Location, error)
-}
-```
-
-#### Implementations
-
-##### alltheplaces.AllThePlacesParser
-
-##### overture.OverturePlaceParser
-
-##### whosonfirst.WhosOnFirstVenueParser
-
-### location.Database
-
-```
-// Database is an interface for storing and querying `Location` records.
-type Database interface {
-	// AddLocation adds a `Location` record to the underlying database implementation.
-	AddLocation(context.Context, *Location) error
-	// GetById returns a `Location` record matching an identifier in the underlying database implementation.
-	GetById(context.Context, string) (*Location, error)
-	// GetGeohashes returns the unique set of geohashes for all the `Location` records stored in the underlying database implementation.
-	GetGeohashes(context.Context, GetGeohashesCallback) error
-	// GetWithGeohash returns all the `Location` records matching a given geohash in the underlying database implementation.
-	GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
-	// Close performs and terminating functions required by the database.	
-	Close(context.Context) error
-}
-```
-
-#### Implementations
-
-##### BleveDatabase
-
-##### SQLDatabase
-
-### embeddings.Embedder
-
-```
-// Embedder defines an interface for generating (vector) embeddings
-type Embedder interface {
-	// Embeddings returns the embeddings for a string as a list of float64 values.
-	Embeddings(context.Context, string) ([]float64, error)
-	// Embeddings32 returns the embeddings for a string as a list of float32 values.	
-	Embeddings32(context.Context, string) ([]float32, error)
-}
-```
-
-#### Implementations
-
-##### ChromemOllamaEmbedder
-
-##### OllamaEmbedder
-
-### vector.Database
-
-```
-// Database defines an interface for adding and querying vector embeddings of `location.Location` records.
-type Database interface {
-	// Add adds a `Location` record to the underlying database implementation.	
-	Add(context.Context, *location.Location) error
-	// Query results a list of `QueryResult` instances for records matching a `location.Location` in the underlying database implementation.
-	Query(context.Context, *location.Location) ([]*QueryResult, error)
-	// MeetsThreshold returns a boolean value indicating whether a `QueryResult` instance satisfies a given threshold value.
-	MeetsThreshold(context.Context, *QueryResult, float64) (bool, error)
-	// Close performs and terminating functions required by the database.		
-	Close(context.Context) error
-}
-```
-
-#### Implementations
-
-##### BleveDatabase
-
-##### ChromemDatabase
-
-##### OpensearchDatabase
-
-Given 7.3M Overture places and containerized single-node OpenSearch instance (24GB) on an M-series laptop, storing dense vectors (768) for both name and address fields:
-
-* ~24 hours to index everything with `cmd/index-overture-places`
-* 177GB data (OpenSearch)
-
-Querying anything (for example `cmd/compare-alltheplaces`) is brutally slow, like "20771 records in 3h20m0". Logs are full of stuff like:
-
-```
-2024-06-14 11:02:46 [2024-06-14T18:02:46,610][INFO ][o.o.a.c.HourlyCron       ] [27612b934c0f] Hourly maintenance succeeds
-2024-06-14 11:02:46 [2024-06-14T18:02:46,793][INFO ][o.o.s.l.LogTypeService   ] [27612b934c0f] Loaded [23] customLogType docs successfully!
-2024-06-14 11:02:47 [2024-06-14T18:02:47,521][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] info deleteOldIndices
-2024-06-14 11:02:47 [2024-06-14T18:02:47,525][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] info deleteOldIndices
-2024-06-14 11:02:47 [2024-06-14T18:02:47,526][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] No Old Finding Indices to delete
-2024-06-14 11:02:47 [2024-06-14T18:02:47,527][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] No Old Alert Indices to delete
-2024-06-14 11:02:58 [2024-06-14T18:02:58,648][INFO ][o.o.j.s.JobSweeper       ] [27612b934c0f] Running full sweep
-2024-06-14 11:03:05 [2024-06-14T18:03:05,932][INFO ][o.o.s.s.c.FlintStreamingJobHouseKeeperTask] [27612b934c0f] Starting housekeeping task for auto refresh streaming jobs.
-2024-06-14 11:03:05 [2024-06-14T18:03:05,983][INFO ][o.o.s.s.c.FlintStreamingJobHouseKeeperTask] [27612b934c0f] Finished housekeeping task for auto refresh streaming jobs.
-2024-06-14 11:03:35 [2024-06-14T18:03:35,196][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:05:35 [2024-06-14T18:05:35,235][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:07:35 [2024-06-14T18:07:35,253][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:07:58 [2024-06-14T18:07:58,664][INFO ][o.o.j.s.JobSweeper       ] [27612b934c0f] Running full sweep
-2024-06-14 11:09:35 [2024-06-14T18:09:35,274][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-```
-
-The (containerized) CPU is pegged at 100% using a steady 15GB of RAM. This is using a single synchronous worker to do lookups. Anything more seems to cause the container to kill itself after a while.
-
-##### SQLiteDatabase
-
-The `SQLiteDatabase` implementation uses Alex Garcia's [sqlite-vec extension](https://alexgarcia.xyz/blog/2024/sqlite-vec-stable-release/index.html) (and its [Go language bindings](https://alexgarcia.xyz/sqlite-vec/go.html)) to store and query vector embeddings.
+As of this writing most of the work has been centered around the SQLite implementations for locations and vector databases and the Ollama implementation for generating embeddings. These are discussed in detail below.
 
 ## Example
 
@@ -308,7 +119,14 @@ $> go run cmd/migrate-deprecated-records/main.go \
 ### Compare records (against Overture places)
 
 ```
-...
+$> go run cmd/compare-locations/main.go \
+	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture-locations.db' \
+	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
+	-workers 50 \
+	> /usr/local/data/overture/ovtr-wof-ny.csv
+
+$> wc -l /usr/local/data/ovtr-wof-ny.csv 
+   25538 /usr/local/data/ovtr-wof-ny.csv
 
 ```
 
