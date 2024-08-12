@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/whosonfirst/go-dedupe/alltheplaces"
+	_ "github.com/whosonfirst/go-dedupe/ilms"
 	_ "github.com/whosonfirst/go-dedupe/overture"
 	_ "github.com/whosonfirst/go-dedupe/whosonfirst"
 

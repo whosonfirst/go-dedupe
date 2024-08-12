@@ -48,6 +48,22 @@ ctx := context.Background()
 parser, _ := location.NewParser(ctx, "alltheplaces://")
 ```
 
+#### ilms.ILMSParser
+
+The syntax for creating a new `ILMSParser` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/location"
+	_ "github.com/whosonfirst/go-dedupe/ilms"
+)
+
+ctx := context.Background()
+parser, _ := location.NewParser(ctx, "ilms://")
+```
+
 #### overture.OverturePlaceParser
 
 The syntax for creating a new `OverturePlaceParser` is:

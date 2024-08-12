@@ -41,6 +41,32 @@ ctx := context.Background()
 loc, _ := location.NewLocation(ctx, "alltheplaces://")
 ```
 
+#### ilms.ILMSIterator
+
+The `ILMSIterator` processes one or more records in the ILMS [Museum Data Files](https://www.imls.gov/research-evaluation/data-collection/museum-data-files) CSV records. For example:
+
+```
+$> go run cmd/index-locations/main.go \
+	-location-database-uri null:// \
+	-location-parser-uri ilms:// \
+	-iterator-uri ilms:// \
+	/usr/local/data/2018_csv_museum_data_files/MuseumFile2018_File*.csv
+```
+
+The syntax for creating a new `ILMSIterator` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/location"
+	_ "github.com/whosonfirst/go-dedupe/ilms"
+)
+
+ctx := context.Background()
+loc, _ := location.NewLocation(ctx, "ilms://")
+```
+
 #### overture.OvertureIterator
 
 The `OvertureIterator` processes one or more JSON-L files (optionally bzip-compressed) containing Overture Data GeoJSON Feature records. For example:

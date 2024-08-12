@@ -16,6 +16,10 @@ func AllThePlacesId(id string) string {
 	return idWithPrefix(ALLTHEPLACES_PREFIX, id)
 }
 
+func ILMSId(id string) string {
+	return idWithPrefix(ILMS_PREFIX, id)
+}
+
 func idWithPrefix(prefix string, id string) string {
 	return fmt.Sprintf("%s:id=%s", prefix, id)
 }
