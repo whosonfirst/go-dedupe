@@ -10,7 +10,7 @@ Documentation, in particular the `godoc` documentation,  is incomplete at this t
 
 1. This code was written by and for the Who's On First project but many of the tools are data source (or provider) agnostic.
 2. This package contains a number of different implementations for a variety of data and storage providers. This reflects the ongoing investigatory nature of the code. At some point in the future some of these implementations may be moved in their own packages or removed entirely.
-3. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gently "clue bats" are welcome.
+3. None of this code is especially "fast". It preferences (relative) ease of use and reproducability in favour of speed and other optimizations. Suggestions and gentle "clue bats" are welcome.
 
 ## Concepts
 
