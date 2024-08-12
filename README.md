@@ -42,9 +42,11 @@ There are a few things to note about this approach:
 * Likewise, if `location.Location` records have been supplemented with Who's On First hierarchies (on ingest or at runtime) then they might also be filtered by geohash _and_ region to account for the fact that the same geohash can span multiple administrative boundaries.
 * This code works best with small and short-lived (temporary) vector databases on disk or in memory. Storing and querying millions of venue records and their embeddings on consumer grade hardware (my laptop) is generally slow and impractical. Many (but not all, yet) of the `vector.Database` implementations have been configured with the ability to create (and remove) temporary databases automatically. Details are discussed below.
 
-As of this writing most of the work has been centered around the SQLite implementations for locations and vector databases and the Ollama implementation for generating embeddings. These are discussed in detail below.
+As of this writing most of the work has been centered around the SQLite implementations for [locations](location/README.md#sqldatabase) and [vector databases](https://github.com/whosonfirst/go-dedupe/blob/main/vector/README.md#sqlitedatabase) and the Ollama implementation for generating [embeddings](embeddings/README.md#ollamaembedder). Details for each are discussed in their respective packages.
 
 ## Example
+
+Documentation and details for these tools can be found in the [cmd/README.md](cmd/README.md) file.
 
 ### Prune deprecated records
 
@@ -116,12 +118,22 @@ $> go run cmd/migrate-deprecated-records/main.go \
 	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
 ```
 
+Rebuild the location database:
+
+```
+$> go run cmd/index-locations/main.go \
+	-iterator-uri whosonfirst:// \
+	-location-parser-uri whosonfirstvenues:// \
+	-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny-2.db' \
+	/usr/local/data/whosonfirst-data-venue-us-ny/
+```
+
 ### Compare records (against Overture places)
 
 ```
 $> go run cmd/compare-locations/main.go \
 	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture-locations.db' \
-	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
+	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny-2.db' \
 	-workers 50 \
 	> /usr/local/data/overture/ovtr-wof-ny.csv
 
