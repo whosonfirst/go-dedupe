@@ -18,7 +18,7 @@ type Database interface {
 
 ### Implementations
 
-As of this writing most of the work and testing (and successes) has been happening around the [SQLiteDatabase](#) implementation.
+_tl;dr – As of this writing most of the work and testing (and successes) has been happening around the [SQLiteDatabase](#sqlitedatabase) implementation._
 
 #### BleveDatabase
 
