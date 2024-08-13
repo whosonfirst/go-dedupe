@@ -96,7 +96,7 @@ Valid parameters for the `OpensearchDatabase` implemetation are:
 
 | Name | Value | Required | Notes |
 | --- | --- | --- | --- |
-| client | string | yes | A URI string that can be parsed by the [whosonfirst/go-whosonfirst-opensearch/client.ClientOptionsFromURI](https://github.com/whosonfirst/go-whosonfirst-opensearch/blob/main/client/client.go#L40C6-L40C26) method. |
+| client-uri | string | yes | A URI string that can be parsed by the [whosonfirst/go-whosonfirst-opensearch/client.ClientOptionsFromURI](https://github.com/whosonfirst/go-whosonfirst-opensearch/blob/main/client/client.go#L40C6-L40C26) method. |
 | model | string| yes | The name of the model you want to use when generating embeddings. |
 
 Some things to note:
@@ -108,9 +108,7 @@ Given 7.3M Overture places and a containerized single-node OpenSearch instance (
 
 Querying anything (for example `cmd/compare-alltheplaces`) is brutally slow, like "20771 records in 3h20m0" and the log files are full of "knn.circuit_breaker.triggered" errors. The (containerized) CPU was often pegged at 100% using a steady 15GB of RAM. This is using a single synchronous worker to do lookups. Anything more seems to cause the container to kill itself after a while.
 
-Additionally, all of the steps required to [configure Opensearch as a vector database](https://opensearch.org/docs/latest/search-plugins/semantic-search/) are assumed to have happened _before_ constructor (above) is invoked.
-
-This code was last tested before the adoption of small, temporary databases and it is something worth revisiting but this will also require adding code to spin up, configure and tear down individual (per-geohash) OpenSearch indices on demand.
+Additionally, all of the steps required to [configure Opensearch as a vector database](https://opensearch.org/docs/latest/search-plugins/semantic-search/) are assumed to have happened _before_ constructor (above) is invoked. This code was last tested before the adoption of small, temporary databases and it is something worth revisiting but this will also require adding code to spin up, configure and tear down individual (per-geohash) OpenSearch indices on demand.
 
 #### SQLiteDatabase
 
