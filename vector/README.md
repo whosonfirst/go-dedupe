@@ -48,7 +48,7 @@ By default `{PATH}` strings take the form of a local path on disk.
 
 If a path contains the string `{tmp}` then the (BleveDatabase) code will create a new Bleve database to be used for storing and querying documents. That database will be created in whatever temporary folder the operating system defines and removed the (BleveDatabase) `Close` method is invoked.
 
-_Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final database was both really big (multiple dozens of GB if memory serves) and really slow. It is worth revisiting how effective things are with on-demand per-geohash databases._
+Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final database was both really big (multiple dozens of GB if memory serves) and really slow. It is worth revisiting how effective things are with on-demand per-geohash databases.
 
 #### ChromemDatabase
 
