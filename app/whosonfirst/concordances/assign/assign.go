@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/sfomuseum/go-csvdict"
+	"github.com/sfomuseum/go-edtf"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-reader"
 	"github.com/whosonfirst/go-whosonfirst-export/v2"
@@ -112,10 +113,40 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 			concordances := properties.Concordances(body)
 			concordances[concordance_key] = other_id
 
+			if concordance_as_int {
+
+				int_id, err := strconv.ParseInt(other_id, 10, 64)
+
+				if err != nil {
+					logger.Error("Failed to parse concordance ID as int, leaving string value in place", "error", err)
+				} else {
+					concordances[concordance_key] = int_id
+				}
+			}
+
 			updates := map[string]interface{}{
-				"properties.wof:concordances":                                  concordances,
-				fmt.Sprintf("properties.%s:label", concordance_namespace):      other_label,
-				fmt.Sprintf("properties.%s:similarity", concordance_namespace): row["similarity"],
+				"properties.wof:concordances":                             concordances,
+				fmt.Sprintf("properties.%s:label", concordance_namespace): other_label,
+			}
+
+			if mark_is_current {
+
+				cessation := properties.Cessation(body)
+
+				if cessation != "" && cessation != edtf.OPEN && cessation != edtf.UNKNOWN && cessation != edtf.OPEN_2012 && cessation != edtf.UNKNOWN_2012 {
+					updates["properties.mz:is_current"] = 1
+				} else {
+
+					logger.Warn("Record has a non-nil cessation date, do not assign mz:is_current=1", "cessation", cessation)
+				}
+			}
+
+			similarity, err := strconv.ParseFloat(row["similarity"], 32)
+
+			if err != nil {
+				logger.Error("Failed to parse similarity as float, ignoring", "similarity", row["similarity"], "error", err)
+			} else {
+				updates[fmt.Sprintf("properties.%s:similarity", concordance_namespace)] = similarity
 			}
 
 			has_changes, new_body, err := export.AssignPropertiesIfChanged(ctx, body, updates)

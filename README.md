@@ -44,6 +44,15 @@ There are a few things to note about this approach:
 
 As of this writing most of the work has been centered around the SQLite implementations for [location databases](location/README.md#sqldatabase) and [vector databases](https://github.com/whosonfirst/go-dedupe/blob/main/vector/README.md#sqlitedatabase) and the Ollama implementation for [generating embeddings](embeddings/README.md#ollamaembedder). Details for each are discussed in their respective packages.
 
+## Data sources (providers)
+
+The following data source (providers) have working implementations (iterators and location parsers) for use with this package:
+
+* [All The Places](https://www.alltheplaces.xyz/)
+* [Institute of Museum and Library Services](https://www.imls.gov/research-evaluation/data-collection/museum-data-files) (Museum Data Files)
+* [Overture Data](https://docs.overturemaps.org/guides/places/) (Places)
+* [Who's On First](https://github.com/whosonfirst-data/?q=whosonfirst-data-venue&type=all&language=&sort=) (Venues)
+
 ## Example
 
 Documentation and details for these tools can be found in the [cmd/README.md](cmd/README.md) file.
@@ -145,13 +154,14 @@ $> wc -l /usr/local/data/ovtr-wof-ny.csv
 ### Apply concordances (between Who's On First venues and Overture places)
 
 ```
+$> go run cmd/assign-wof-concordances/main.go \
+	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
+	-writer-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
+	-concordance-namespace ovtr \
+	-concordance-predicate id \
+	/usr/local/data/ovtr-wof-ny.csv
 ...
 ```
-
-## Data sources (providers)
-
-* https://www.alltheplaces.xyz/
-* https://www.imls.gov/research-evaluation/data-collection/museum-data-files
 
 ## See also
 
