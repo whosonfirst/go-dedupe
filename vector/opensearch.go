@@ -84,7 +84,7 @@ func NewOpensearchDatabase(ctx context.Context, uri string) (Database, error) {
 
 	// START OF put all of this in the go-whosonfirst-opensearch package
 
-	dsn := q.Get("dsn")
+	dsn := q.Get("client-uri")
 
 	if dsn == "" {
 		return nil, fmt.Errorf("Missing ?dsn= parameter")

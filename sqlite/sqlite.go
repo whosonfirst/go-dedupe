@@ -33,7 +33,6 @@ func DefaultPragma() []string {
 	pragma := []string{
 		"PRAGMA JOURNAL_MODE=OFF",
 		"PRAGMA SYNCHRONOUS=OFF",
-		// "PRAGMA LOCKING_MODE=EXCLUSIVE",
 		// https://www.gaia-gis.it/gaia-sins/spatialite-cookbook/html/system.html
 		"PRAGMA PAGE_SIZE=4096",
 		"PRAGMA CACHE_SIZE=1000000",

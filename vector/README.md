@@ -18,37 +18,99 @@ type Database interface {
 
 ### Implementations
 
+As of this writing most of the work and testing (and successes) has been happening around the [SQLiteDatabase](#) implementation.
+
 #### BleveDatabase
+
+The `BleveDatabase` implementation uses the [Bleve indexing library](https://github.com/blevesearch/bleve) to store and query vector embeddings.
+
+The syntax for creating a new `BleveDatabase` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/vector"
+)
+
+ctx := context.Background()
+, _ := vector.NewDatabase(ctx, "bleve://{PATH}?{PARAMETERS")
+```
+
+Valid parameters for the `BleveDatabase` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| embedder-uri | string | yes | A valid `Embedder` URI. |
+| dimensions | int | no | The dimensionality of the vector embeddings to store and query. Default is `768`. |
+
+By default `{PATH}` strings take the form of a local path on disk.
+
+If a path contains the string `{tmp}` then the (BleveDatabase) code will create a new Bleve database to be used for storing and querying documents. That database will be created in whatever temporary folder the operating system defines and removed the (BleveDatabase) `Close` method is invoked.
+
+_Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final database was both really big (multiple dozens of GB if memory serves) and really slow. It is worth revisiting how effective things are with on-demand per-geohash databases._
 
 #### ChromemDatabase
 
+The `ChromemOllamaEmbedder` implementation uses the [philippgille/chromem-go](https://github.com/philippgille/chromem-go) package to store and query vector embeddings. In turn `chromem-go` uses the [Ollama application's REST API](https://github.com/ollama/ollama?tab=readme-ov-file#rest-api) to generate embeddings for a text. This package assumes that the Ollama application has already installed, is running and set up to use the models necessary to generate embeddings. Please consult the [Ollama documentation](https://github.com/ollama/ollama) for details.
+
+The syntax for creating a new `ChromemDatabase` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/vector"
+)
+
+ctx := context.Background()
+, _ := vector.NewDatabase(ctx, "chromem://?{PARAMETERS")
+```
+
+Valid parameters for the `ChromemDatabase` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| model | string| yes | The name of the model you want to Ollama API to use when generating embeddings. |
+
+Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final (on-disk) database was both really big (almost 100 GB, I think) and really slow. It is worth revisiting how effective things are with on-demand and in-memory per-geohash databases.
+
 #### OpensearchDatabase
 
-Given 7.3M Overture places and containerized single-node OpenSearch instance (24GB) on an M-series laptop, storing dense vectors (768) for both name and address fields:
+The `OpensearchDatabase` uses the [OpenSearch]() document storage engine to store and query vector embeddings.
 
-* ~24 hours to index everything with `cmd/index-overture-places`
-* 177GB data (OpenSearch)
-
-Querying anything (for example `cmd/compare-alltheplaces`) is brutally slow, like "20771 records in 3h20m0". Logs are full of stuff like:
+The syntax for creating a new `OpensearchDatabase` is:
 
 ```
-2024-06-14 11:02:46 [2024-06-14T18:02:46,610][INFO ][o.o.a.c.HourlyCron       ] [27612b934c0f] Hourly maintenance succeeds
-2024-06-14 11:02:46 [2024-06-14T18:02:46,793][INFO ][o.o.s.l.LogTypeService   ] [27612b934c0f] Loaded [23] customLogType docs successfully!
-2024-06-14 11:02:47 [2024-06-14T18:02:47,521][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] info deleteOldIndices
-2024-06-14 11:02:47 [2024-06-14T18:02:47,525][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] info deleteOldIndices
-2024-06-14 11:02:47 [2024-06-14T18:02:47,526][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] No Old Finding Indices to delete
-2024-06-14 11:02:47 [2024-06-14T18:02:47,527][INFO ][o.o.s.i.DetectorIndexManagementService] [27612b934c0f] No Old Alert Indices to delete
-2024-06-14 11:02:58 [2024-06-14T18:02:58,648][INFO ][o.o.j.s.JobSweeper       ] [27612b934c0f] Running full sweep
-2024-06-14 11:03:05 [2024-06-14T18:03:05,932][INFO ][o.o.s.s.c.FlintStreamingJobHouseKeeperTask] [27612b934c0f] Starting housekeeping task for auto refresh streaming jobs.
-2024-06-14 11:03:05 [2024-06-14T18:03:05,983][INFO ][o.o.s.s.c.FlintStreamingJobHouseKeeperTask] [27612b934c0f] Finished housekeeping task for auto refresh streaming jobs.
-2024-06-14 11:03:35 [2024-06-14T18:03:35,196][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:05:35 [2024-06-14T18:05:35,235][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:07:35 [2024-06-14T18:07:35,253][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
-2024-06-14 11:07:58 [2024-06-14T18:07:58,664][INFO ][o.o.j.s.JobSweeper       ] [27612b934c0f] Running full sweep
-2024-06-14 11:09:35 [2024-06-14T18:09:35,274][INFO ][o.o.k.i.KNNCircuitBreaker] [27612b934c0f] [KNN] knn.circuit_breaker.triggered stays set. Nodes at max cache capacity: O9UKyPOTRjWI7rmXV-Z2kg.
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/vector"
+)
+
+ctx := context.Background()
+, _ := vector.NewDatabase(ctx, "opensearch://?{PARAMETERS")
 ```
 
-The (containerized) CPU is pegged at 100% using a steady 15GB of RAM. This is using a single synchronous worker to do lookups. Anything more seems to cause the container to kill itself after a while.
+Valid parameters for the `OpensearchDatabase` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| client | string | yes | A URI string that can be parsed by the [whosonfirst/go-whosonfirst-opensearch/client.ClientOptionsFromURI](https://github.com/whosonfirst/go-whosonfirst-opensearch/blob/main/client/client.go#L40C6-L40C26) method. |
+| model | string| yes | The name of the model you want to use when generating embeddings. |
+
+Some things to note:
+
+Given 7.3M Overture places and a containerized single-node OpenSearch instance (24GB) on an M-series laptop, storing dense vectors (768) for both name and address fields indexing required:
+
+* ~24 hours to store everything
+* 177GB of disk space (OpenSearch data)
+
+Querying anything (for example `cmd/compare-alltheplaces`) is brutally slow, like "20771 records in 3h20m0" and the log files are full of "knn.circuit_breaker.triggered" errors. The (containerized) CPU was often pegged at 100% using a steady 15GB of RAM. This is using a single synchronous worker to do lookups. Anything more seems to cause the container to kill itself after a while.
+
+Additionally, all of the steps required to [configure Opensearch as a vector database](https://opensearch.org/docs/latest/search-plugins/semantic-search/) are assumed to have happened _before_ constructor (above) is invoked.
+
+This code was last tested before the adoption of small, temporary databases and it is something worth revisiting but this will also require adding code to spin up, configure and tear down individual (per-geohash) OpenSearch indices on demand.
 
 #### SQLiteDatabase
 
