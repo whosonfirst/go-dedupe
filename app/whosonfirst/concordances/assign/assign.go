@@ -133,11 +133,10 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 				cessation := properties.Cessation(body)
 
-				if cessation != "" && cessation != edtf.OPEN && cessation != edtf.UNKNOWN && cessation != edtf.OPEN_2012 && cessation != edtf.UNKNOWN_2012 {
-					updates["properties.mz:is_current"] = 1
-				} else {
-
+				if cessation != "" && cessation != edtf.OPEN && cessation != edtf.UNKNOWN_2012 {
 					logger.Warn("Record has a non-nil cessation date, do not assign mz:is_current=1", "cessation", cessation)
+				} else {
+					updates["properties.mz:is_current"] = 1
 				}
 			}
 
