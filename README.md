@@ -127,7 +127,10 @@ dr5xq,wof:id=555197305,wof:id=253237525,"Matteo's Cafe, 412 Bedford Ave Bellmore
 ### Process (and deprecate) duplicate records
 
 ```
-...
+$> go run cmd/process-wof-duplicates/main.go \
+	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
+	-writer-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
+	/usr/local/data/wof-wof-ny.csv
 ```
 
 ### Prune deprecated records (again)
@@ -158,6 +161,8 @@ $> go run cmd/compare-locations/main.go \
 	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny-2.db' \
 	-workers 50 \
 	> /usr/local/data/overture/ovtr-wof-ny.csv
+
+...time (a lot of it) passes
 
 $> wc -l /usr/local/data/ovtr-wof-ny.csv 
    25538 /usr/local/data/ovtr-wof-ny.csv
