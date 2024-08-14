@@ -114,6 +114,8 @@ type Database interface {
 }
 ```
 
+_Note: It is likely that this interface will change to replace the "with callback" methods with methods that return `iter.Seq2` instances._
+
 ### Implementations
 
 #### BleveDatabase

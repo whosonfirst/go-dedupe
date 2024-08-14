@@ -13,6 +13,8 @@ type Iterator interface {
 }
 ```
 
+_Note: It is likely that this interface will change to replace the `IterateWithCallback` method with something like `Iterate(context.Context, ...string) iter.Seq2[*geojson.Feature, error]`._
+
 ### Implementations
 
 #### alltheplaces.AllThePlacesIterator
