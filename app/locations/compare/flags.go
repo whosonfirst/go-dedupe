@@ -23,7 +23,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("compare")
 
-	fs.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none", "A valid whosonfirst/go-dedupe/vector.Database URI.")
+	fs.StringVar(&vector_database_uri, "vector-database-uri", "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none", "A valid whosonfirst/go-dedupe/vector.Database URI. If the dsn= parameter contains the string \"{geohash}\" then that string will be replaced, at runtime, with the value of the geohash being compared. This will have the effect of creating a vector database per geohash.")
 
 	fs.StringVar(&source_location_database_uri, "source-location-database-uri", "", "A valid whosonfirst/go-dedupe/location.Database URI.")
 	fs.StringVar(&target_location_database_uri, "target-location-database-uri", "", "A valid whosonfirst/go-dedupe/location.Database URI.")

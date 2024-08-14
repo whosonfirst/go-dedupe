@@ -30,7 +30,7 @@ Valid options are:
   -threshold float
     	The threshold value for matching records. Whether this value is greater than or lesser than a matching value will be dependent on the vector database in use. (default 4)
   -vector-database-uri string
-    	A valid whosonfirst/go-dedupe/vector.Database URI. (default "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none")
+    	A valid whosonfirst/go-dedupe/vector.Database URI. If the dsn= parameter contains the string "{geohash}" then that string will be replaced, at runtime, with the value of the geohash being compared. This will have the effect of creating a vector database per geohash. (default "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none")	
   -verbose
     	Enable verbose (debug) logging.
   -workers int
