@@ -24,7 +24,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Migrate deprecated records from one Who's On First repository to another.\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
 	}

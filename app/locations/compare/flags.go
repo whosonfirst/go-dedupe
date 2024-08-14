@@ -37,7 +37,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Compare two location databases and emit matching records as CSV-encoded rows.\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options]\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
 	}

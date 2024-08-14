@@ -24,7 +24,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Process duplicate records in a Who's On First repository (which means deprecate and mark as superseding or superseded by where necessary).\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
 	}

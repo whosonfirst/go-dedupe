@@ -29,7 +29,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Populate (index) a location database from data/provider source..\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
 	}

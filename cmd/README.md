@@ -1,5 +1,16 @@
 # Command line tools
 
+```
+$> make cli
+cd ../ && make cli && cd -
+go build -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-assign-concordances cmd/wof-assign-concordances/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-migrate-deprecated cmd/wof-migrate-deprecated/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-process-duplicates cmd/wof-process-duplicates/main.go
+/usr/local/whosonfirst/go-dedupe/cmd
+```
+
 ## compare-locations
 
 Compare two location databases and emit matching records as CSV-encoded rows.
@@ -8,7 +19,8 @@ Compare two location databases and emit matching records as CSV-encoded rows.
 $> ./bin/compare-locations -h
 Compare two location databases and emit matching records as CSV-encoded rows.
 Usage:
-	 ./bin/compare-locations [options]Valid options are:
+	 ./bin/compare-locations [options]
+Valid options are:
   -monitor-uri string
     	A valid sfomuseum/go-timings.Monitor URI. (default "counter://PT60S")
   -source-location-database-uri string
@@ -43,7 +55,8 @@ Populate (index) a location database from data/provider source..
 $> ./bin/index-locations -h
 Populate (index) a location database from data/provider source..
 Usage:
-	 ./bin/index-locations [options] uri(N) uri(N)Valid options are:
+	 ./bin/index-locations [options] uri(N) uri(N)
+ Valid options are:
   -iterator-uri string
     	A valid whosonfirst/go-dedupe/iterator.Iterator URI.
   -location-database-uri string
@@ -74,7 +87,8 @@ Assign concordances from a data/provider source to a Who's On First repository..
 $> ./bin/wof-assign-concordances -h
 Assign concordances from a data/provider source to a Who's On First repository..
 Usage:
-	 ./bin/wof-assign-concordances [options] uri(N) uri(N)Valid options are:
+	 ./bin/wof-assign-concordances [options] uri(N) uri(N)
+Valid options are:
   -concordance-as-int
     	If true cast the concordance ID as an int64
   -concordance-namespace string
@@ -112,7 +126,8 @@ Migrate deprecated records from one Who's On First repository to another.
 $> ./bin/wof-migrate-deprecated -h
 Migrate deprecated records from one Who's On First repository to another.
 Usage:
-	 ./bin/wof-migrate-deprecated [options]Valid options are:
+	 ./bin/wof-migrate-deprecated [options]
+Valid options are:
   -source-repo string
     	The path to the Who's On First repository that deprecated records will be removed from.
   -target-repo string
@@ -137,7 +152,8 @@ Process duplicate records in a Who's On First repository (which means deprecate 
 $> ./bin/wof-process-duplicates -h
 Process duplicate records in a Who's On First repository (which means deprecate and mark as superseding or superseded by where necessary).
 Usage:
-	 ./bin/wof-process-duplicates [options] uri(N) uri(N)Valid options are:
+	 ./bin/wof-process-duplicates [options] uri(N) uri(N)
+Valid options are:
   -reader-uri string
     	A valid whosonfirst/go-reader.Reader URI that records to be processed will be read from.
   -verbose

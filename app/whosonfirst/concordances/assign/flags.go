@@ -38,7 +38,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Assign concordances from a data/provider source to a Who's On First repository..\n")
-		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
 	}
