@@ -137,6 +137,8 @@ dr5xq,wof:id=555197305,wof:id=253237525,"Matteo's Cafe, 412 Bedford Ave Bellmore
 
 ### Process (and deprecate) duplicate records
 
+Process any duplicate records in the Who's On First repository. This will mark records as deprecated, superseding or superseded by as necessary.
+
 ```
 $> ./bin/wof-process-duplicates \
 	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
@@ -146,7 +148,7 @@ $> ./bin/wof-process-duplicates \
 
 ### Prune deprecated records (again)
 
-Move newly deprecated records in the `whosonfirst-data-deprecated-venue` repository.
+Move newly deprecated records in the `whosonfirst-data-deprecated-venue` repository. This isn't strictly necessary but because there are so many venues it's nice to move known-bad records in to their own isolated sandbox.
 
 ```
 $> ./bin/wof-migrate-deprecated \
@@ -166,6 +168,8 @@ $> ./bin/index-locations \
 
 ### Compare Who's On First records against Overture records
 
+Compare Who's On First records against Overture records, writing matching records to a CSV file on disk.
+
 ```
 $> ./bin/compare-locations \
 	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture-locations.db' \
@@ -173,14 +177,21 @@ $> ./bin/compare-locations \
 	-workers 50 \
 	> /usr/local/data/overture/ovtr-wof-ny.csv
 
-...time (a lot of it) passes
+...time passes (a lot of it)
+```
 
+Eventually this process will complete and looking at the resultant CSV file there are over 25, 000 matching records between these two data sources:
+
+```
 $> wc -l /usr/local/data/ovtr-wof-ny.csv 
    25538 /usr/local/data/ovtr-wof-ny.csv
 ```
 
+_At some point in the future it may be possible to specify different "targets" where matching records are emitted to (both locally and remotely) but for the time being a CSV file will do._
+
 ### Apply concordances (between Who's On First venues and Overture places)
 
+Update the Who's On First records with 
 ```
 $> ./bin/wof-assign-concordances \
 	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
@@ -189,6 +200,8 @@ $> ./bin/wof-assign-concordances \
 	-concordance-predicate id \
 	/usr/local/data/ovtr-wof-ny.csv
 ```
+
+_The `wof-assign-concordances` tool a tool to allow you to explictly mark matching Who's On First records as being "current". As of this writing that is a manual process. In the future there may be code/logic to assign this property (`mz:is_current`) based on one or more "confidence" levels define by data providers but those details have not been finalized yet._
 
 ## See also
 

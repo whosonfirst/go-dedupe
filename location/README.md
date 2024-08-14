@@ -120,5 +120,46 @@ _Note: It is likely that this interface will change to replace the "with callbac
 
 #### BleveDatabase
 
+The `BleveDatabase` implementation uses the [Bleve indexing library](https://github.com/blevesearch/bleve) to store and query location records.
+
+The syntax for creating a new `BleveDatabase` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/location"
+)
+
+ctx := context.Background()
+db, _ := location.NewDatabase(ctx, "bleve://{PATH_TO_DATABASE}")
+```
+
+Where `{PATH_TO_DATABASE}` is a valid path on the local disk where the Bleve database should be stored.
+
 #### SQLDatabase
 
+The `SQLDatabase` implentation uses the native `database/sql` package to store and query location records.
+
+The syntax for creating a new `SQLDatabase` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/location"
+	// Your database/sql driver here
+)
+
+ctx := context.Background()
+db, _ := location.NewDatabase(ctx, "sql://{ENGINE}?{PARAMETERS}")
+```
+
+Where `{ENGINE}` is a valid [database/sql database driver (engine)](https://pkg.go.dev/database/sql).
+
+Valid parameters for the `SQLDatabase` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| dsn| string | yes | A valid valid [database/sql DSN string](https://pkg.go.dev/database/sql) specific to the database driver/engine being used. |
+| max-conns | int | no | If defined, sets the maximum number of open connections to the database. |
