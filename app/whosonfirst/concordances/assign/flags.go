@@ -2,6 +2,8 @@ package assign
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/sfomuseum/go-flags/flagset"
 )
@@ -22,8 +24,8 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("assign")
 
-	fs.StringVar(&reader_uri, "reader-uri", "", "A valid whosonfirst/go-reader URI for reading WOF records from.")
-	fs.StringVar(&writer_uri, "writer-uri", "", "A valid whosonfirst/go-reader URI for writing WOF records from.")
+	fs.StringVar(&reader_uri, "reader-uri", "", "A valid whosonfirst/go-reader.Reader URI for reading WOF records from.")
+	fs.StringVar(&writer_uri, "writer-uri", "", "A valid whosonfirst/go-writer.Writer URI for writing WOF records to.")
 
 	fs.StringVar(&wof_label, "whosonfirst-label", "target", "The \"label\" used to identify WOF records. Valid options are: source, target.")
 
@@ -33,5 +35,13 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.BoolVar(&mark_is_current, "mark-is-current", false, "If true the addition of a cocordance will mark this record as mz:is_current=1")
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
+
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Assign concordances from a data/provider source to a Who's On First repository..\n")
+		fmt.Fprintf(os.Stderr, "Usage:\n\t %s [options] uri(N) uri(N)", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Valid options are:\n")
+		fs.PrintDefaults()
+	}
+
 	return fs
 }

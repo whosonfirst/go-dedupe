@@ -55,14 +55,25 @@ The following data source (providers) have working implementations (iterators an
 
 ## Example
 
+```
+$> make cli
+go build -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-assign-concordances cmd/wof-assign-concordances/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-migrate-deprecated cmd/wof-migrate-deprecated/main.go
+go build -mod vendor -ldflags="-s -w" -o bin/wof-process-duplicates cmd/wof-process-duplicates/main.go
+```
+
 Documentation and details for these tools can be found in the [cmd/README.md](cmd/README.md) file.
+
+The following examples will show the work flow for prepping and comparing a Who's On First (WOF) venue repository against a collection of Overture Data place records and then assigning concordances (matching records) to the WOF venues.
 
 ### Prune deprecated records
 
 First, start by moving records flagged as deprecated in the `whosonfirst-data-deprecated-venue` repository. This isn't entirely necessary as the `whosonfirst://` iterator (below) defaults to excluding records which are marked as deprecated.
 
 ```
-$> go run cmd/migrate-deprecated-records/main.go \
+$> ./bin/wof-migrate-deprecated \
 	-source-repo /usr/local/data/whosonfirst-data-venue-us-ny \
 	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
 ```
@@ -72,7 +83,7 @@ $> go run cmd/migrate-deprecated-records/main.go \
 First create a locations database for all these Who's On First venues.
 
 ```
-$> go run cmd/index-locations/main.go \
+$> ./bin/index-locations \
 	-iterator-uri whosonfirst:// \
 	-location-parser-uri whosonfirstvenues:// \
 	-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db&max-conns=1' \
@@ -82,7 +93,7 @@ $> go run cmd/index-locations/main.go \
 Next create a locations database for Overture Data places, in this example venues with a confidence level of 0.95 or higher. For details on how to create a file like please consult the [documentation for the `whosonfirst/go-overture package.](https://github.com/whosonfirst/go-overture?tab=readme-ov-file#exporting-overture-parquet-files-to-line-separated-json) 
 
 ```
-$> go run cmd/index-locations/main.go \
+$> ./bin/index-locations \
 	-iterator-uri overture:// \
 	-location-parser-uri overtureplaces:// \
 	-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture-locations.db&max-conns=1' \
@@ -94,7 +105,7 @@ $> go run cmd/index-locations/main.go \
 Now compare the Who's On First locations database against itself. This step is performed in order to deduplicate WOF records in the same database (repo).
 
 ```
-$> go run cmd/compare-locations/main.go \
+$> ./bin/compare-locations \
 	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
 	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny.db' \
 	-workers 50 \
@@ -127,7 +138,7 @@ dr5xq,wof:id=555197305,wof:id=253237525,"Matteo's Cafe, 412 Bedford Ave Bellmore
 ### Process (and deprecate) duplicate records
 
 ```
-$> go run cmd/process-wof-duplicates/main.go \
+$> ./bin/wof-process-duplicates \
 	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
 	-writer-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
 	/usr/local/data/wof-wof-ny.csv
@@ -138,7 +149,7 @@ $> go run cmd/process-wof-duplicates/main.go \
 Move newly deprecated records in the `whosonfirst-data-deprecated-venue` repository.
 
 ```
-$> go run cmd/migrate-deprecated-records/main.go \
+$> ./bin/wof-migrate-deprecated \
 	-source-repo /usr/local/data/whosonfirst-data-venue-us-ny \
 	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
 ```
@@ -146,7 +157,7 @@ $> go run cmd/migrate-deprecated-records/main.go \
 Rebuild the Who's On First location database:
 
 ```
-$> go run cmd/index-locations/main.go \
+$> ./bin/index-locations \
 	-iterator-uri whosonfirst:// \
 	-location-parser-uri whosonfirstvenues:// \
 	-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny-2.db' \
@@ -156,7 +167,7 @@ $> go run cmd/index-locations/main.go \
 ### Compare Who's On First records against Overture records
 
 ```
-$> go run cmd/compare-locations/main.go \
+$> ./bin/compare-locations \
 	-source-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/overture-locations.db' \
 	-target-location-database-uri 'sql://sqlite3?dsn=/usr/local/data/whosonfirst-ny-2.db' \
 	-workers 50 \
@@ -171,7 +182,7 @@ $> wc -l /usr/local/data/ovtr-wof-ny.csv
 ### Apply concordances (between Who's On First venues and Overture places)
 
 ```
-$> go run cmd/assign-wof-concordances/main.go \
+$> ./bin/wof-assign-concordances \
 	-reader-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
 	-writer-uri repo:///usr/local/data/whosonfirst-data-venue-us-ny \
 	-concordance-namespace ovtr \
