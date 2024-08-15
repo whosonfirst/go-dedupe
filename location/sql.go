@@ -46,8 +46,6 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to open database connection, %w", err)
 	}
 
-	// Something something something create table here if necessary...
-
 	db := &SQLDatabase{
 		engine: engine,
 		conn:   conn,

@@ -163,3 +163,5 @@ Valid parameters for the `SQLDatabase` implemetation are:
 | --- | --- | --- | --- |
 | dsn| string | yes | A valid valid [database/sql DSN string](https://pkg.go.dev/database/sql) specific to the database driver/engine being used. |
 | max-conns | int | no | If defined, sets the maximum number of open connections to the database. |
+
+Note: So far only support (and schemas) for [SQLite](https://github.com/mattn/go-sqlite3) has been tested.
