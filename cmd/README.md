@@ -29,8 +29,14 @@ Valid options are:
     	A valid whosonfirst/go-dedupe/location.Database URI.
   -threshold float
     	The threshold value for matching records. Whether this value is greater than or lesser than a matching value will be dependent on the vector database in use. (default 4)
+  -vector-database-dsn string
+    	A valid whosonfirst/go-dedupe/vector.Database DSN string. If the parameter contains the string "{geohash}" then that string will be replaced, at runtime, with the value of the geohash being compared. This will have the effect of creating a vector database per geohash. This value will be used to replace any "{vector-database-dsn}" strings in the -vector-database-uri flag. (default "{tmp}{geohash}.db?cache=shared&mode=memory")
+  -vector-database-embedder-uri string
+    	A valid whosonfirst/go-dedupe/embeddings.Embedder URI. This value will be used to replace any "{vector-database-embedder-uri}" strings in the -vector-database-uri flag. (default "ollama://?model={vector-database-model}")
+  -vector-database-model string
+    	The name of the model to use comparing records in the location database against records in the vector database. This value will be used to replace any "{vector-database-model}" strings in the -vector-database-uri and -vector-database-embedder-uri flags. (default "mxbai-embed-large")
   -vector-database-uri string
-    	A valid whosonfirst/go-dedupe/vector.Database URI. If the dsn= parameter contains the string "{geohash}" then that string will be replaced, at runtime, with the value of the geohash being compared. This will have the effect of creating a vector database per geohash. (default "sqlite://?model=mxbai-embed-large&dsn=%7Btmp%7D%7Bgeohash%7D.db%3Fcache%3Dshared%26mode%3Dmemory&embedder-uri=ollama%3A%2F%2F%3Fmodel%3Dmxbai-embed-large&max-distance=4&max-results=10&dimensions=1024&compression=none")	
+    	A valid whosonfirst/go-dedupe/vector.Database URI. (default "sqlite://?model={vector-database-model}&dsn={vector-database-dsn}&embedder-uri={vector-database-embedder-uri}&max-distance=4&max-results=10&dimensions=1024&compression=none")
   -verbose
     	Enable verbose (debug) logging.
   -workers int
