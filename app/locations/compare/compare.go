@@ -25,6 +25,8 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		slog.Debug("Verbose logging enabled")
 	}
 
+	// START of flag replacement hoohah because URL query escaping makes your eyes sad
+	
 	if vector_database_dsn != "" || vector_database_embedder_uri != "" || vector_database_model != "" {
 
 		slog.Debug("Process replacement flags", "vector-database-dsn", vector_database_dsn, "vector-database-embedder-uri", vector_database_embedder_uri, "vector-database-model", vector_database_model)
@@ -103,9 +105,8 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		vector_database_uri = u.String()
 	}
 
-	slog.Info(vector_database_uri)
-	return nil
-
+	// END of flag replacement hoohah because URL query escaping makes your eyes sad
+	
 	cmp_opts := &wof_compare.CompareLocationDatabasesOptions{
 		SourceLocationDatabaseURI: source_location_database_uri,
 		TargetLocationDatabaseURI: target_location_database_uri,
