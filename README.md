@@ -6,6 +6,10 @@ Go package for resolving duplicate "place" (or venue) locations.
 
 Documentation, in particular the `godoc` documentation,  is incomplete at this time.
 
+## Background
+
+For background please have a look at the [ De-duplicating Who's On First venues with vector embeddings ](https://whosonfirst.org/blog/2024/08/16/dedupe/) and, for historical context, the [Who's On First ꞉fist-bump꞉ OpenStreetMap](https://whosonfirst.org/blog/2017/10/24/whosonfirst-sotmus-2017/) blog posts.
+
 ## Important
 
 1. This code was written by and for the Who's On First project but many of the tools are data source (or provider) agnostic.
