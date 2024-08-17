@@ -1,4 +1,5 @@
 //go:build duckdb
+
 package vector
 
 // https://duckdb.org/2024/05/03/vector-similarity-search-vss.html
@@ -13,6 +14,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strconv"
 
@@ -113,9 +115,11 @@ func NewDuckDBDatabase(ctx context.Context, uri string) (Database, error) {
 		return nil, fmt.Errorf("Failed to open database connection, %w", err)
 	}
 
-	// CREATE TABLE HERE...
+	err = setupDuckDBDatabase(ctx, vec_db, dimensions)
 
-	// END OF set up tables and configure database
+	if err != nil {
+		return nil, fmt.Errorf("Failed to setup database, %w", err)
+	}
 
 	if q.Has("max-conns") {
 
@@ -172,5 +176,27 @@ func (db *DuckDBDatabase) Flush(ctx context.Context) error {
 }
 
 func (db *DuckDBDatabase) Close(ctx context.Context) error {
+	return nil
+}
+
+func setupDuckDBDatabase(ctx context.Context, db *sql.DB, dimensions int) error {
+
+	cmds := []string{
+		"INSTALL vss",
+		"LOAD vss",
+		fmt.Sprintf("CREATE TABLE embeddings(id TEXT, vec FLOAT[%d])", dimensions),
+		"CREATE INDEX idx ON embeddings USING HNSW (vec)",
+	}
+
+	for _, q := range cmds {
+
+		slog.Debug(q)
+		_, err := db.ExecContext(ctx, q)
+
+		if err != nil {
+			return fmt.Errorf("Failed to configure data - query failed, %w (%s)", err, q)
+		}
+	}
+
 	return nil
 }
