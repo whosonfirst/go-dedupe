@@ -13,10 +13,12 @@ package vector
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"strconv"
+	"time"
 
 	_ "github.com/marcboeker/go-duckdb"
 
@@ -153,12 +155,80 @@ func NewDuckDBDatabase(ctx context.Context, uri string) (Database, error) {
 }
 
 func (db *DuckDBDatabase) Add(ctx context.Context, loc *location.Location) error {
+
+	id := loc.ID
+	content := loc.String()
+
+	v, err := db.embeddings(ctx, loc)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive embeddings for ID %s, %w", id, err)
+	}
+
+	q := "INSERT OR REPLACE INTO embeddings (id, content, vec) VALUES (?, ?, ?)"
+	slog.Debug(q)
+
+	_, err = db.vec_db.ExecContext(ctx, q, id, content, string(v), content, string(v))
+
+	if err != nil {
+		return fmt.Errorf("Failed to add embeddings for %s, %w", id, err)
+	}
+
 	return nil
 }
 
 func (db *DuckDBDatabase) Query(ctx context.Context, loc *location.Location) ([]*QueryResult, error) {
 
 	results := make([]*QueryResult, 0)
+
+	v, err := db.embeddings(ctx, loc)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to serialize query, %w", err)
+	}
+
+	q := fmt.Sprintf(`SELECT id, content, array_distance(vec, ?::FLOAT[%d]) AS distance
+			  FROM embeddings WHERE distance <= %f
+			  ORDER BY distance DESC LIMIT %d`,
+		db.dimensions, db.max_distance, db.max_results)
+
+	slog.Debug(q)
+
+	t1 := time.Now()
+
+	rows, err := db.vec_db.QueryContext(ctx, q, string(v))
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to execute query, %w", err)
+	}
+
+	slog.Debug("Query context", "time", time.Since(t1))
+
+	for rows.Next() {
+
+		var id string
+		var content string
+		var distance float64
+
+		err = rows.Scan(&id, &content, &distance)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to scan row, %w", err)
+		}
+
+		r := &QueryResult{
+			ID:         id,
+			Content:    content,
+			Similarity: float32(distance),
+		}
+
+		slog.Debug("Result", "location id", id, "content", content, "distance", distance)
+
+		results = append(results, r)
+	}
+
+	slog.Debug("Query rows", "time", time.Since(t1))
+
 	return results, nil
 }
 
@@ -179,12 +249,29 @@ func (db *DuckDBDatabase) Close(ctx context.Context) error {
 	return nil
 }
 
+func (db *DuckDBDatabase) embeddings(ctx context.Context, loc *location.Location) ([]byte, error) {
+
+	q, err := loc.Embeddings32(ctx, db.embedder)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive query for location, %w", err)
+	}
+
+	enc, err := json.Marshal(q)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to serialize query, %w", err)
+	}
+
+	return enc, nil
+}
+
 func setupDuckDBDatabase(ctx context.Context, db *sql.DB, dimensions int) error {
 
 	cmds := []string{
 		"INSTALL vss",
 		"LOAD vss",
-		fmt.Sprintf("CREATE TABLE embeddings(id TEXT, vec FLOAT[%d])", dimensions),
+		fmt.Sprintf("CREATE TABLE embeddings(id TEXT PRIMARY KEY, content TEXT, vec FLOAT[%d])", dimensions),
 		"CREATE INDEX idx ON embeddings USING HNSW (vec)",
 	}
 

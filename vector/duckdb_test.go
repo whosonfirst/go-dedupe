@@ -32,6 +32,14 @@ func TestDuckDBDatabase(t *testing.T) {
 		t.Fatalf("Failed to create duckdb database, %v", err)
 	}
 
+	expected_results := []int{1, 1, 0, 0}
+
+	err = testDatabaseWithLocations(ctx, db, expected_results)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = db.Close(ctx)
 
 	if err != nil {
