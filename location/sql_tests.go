@@ -65,6 +65,8 @@ func testSQLDatabaseEngine(ctx context.Context, engine string) error {
 		return fmt.Errorf("Failed to retrieve location, %w", err)
 	}
 
+	// To do: GetByGeohash, etc.
+	
 	err = db.Close(ctx)
 
 	if err != nil {
