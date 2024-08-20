@@ -5,10 +5,7 @@ package vector
 // https://duckdb.org/2024/05/03/vector-similarity-search-vss.html
 // https://duckdb.org/docs/api/go.html
 // https://pkg.go.dev/github.com/marcboeker/go-duckdb
-
-// Womp womp...
-// /usr/local/go/pkg/tool/darwin_arm64/link: running clang failed: exit status 1
-// /usr/bin/clang -arch arm64 -Wl,-headerpad,1144 -o $WORK/b6
+// https://github.com/marcboeker/go-duckdb/tree/main?tab=readme-ov-file#vendoring
 
 import (
 	"context"
@@ -246,7 +243,7 @@ func (db *DuckDBDatabase) Flush(ctx context.Context) error {
 }
 
 func (db *DuckDBDatabase) Close(ctx context.Context) error {
-	return nil
+	return db.vec_db.Close()
 }
 
 func (db *DuckDBDatabase) embeddings(ctx context.Context, loc *location.Location) ([]byte, error) {

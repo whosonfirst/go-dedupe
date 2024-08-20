@@ -1,3 +1,5 @@
+//go:build chromem
+
 package vector
 
 // Remember: This assumes that Ollama is running in 'serve' mode on its default port.
