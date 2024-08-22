@@ -41,7 +41,9 @@ Required to use the `SQLDatabase` implementation of the `location.Database` inte
 
 Required to use the `SQLiteDatabase` implementation of the `vector.Database` interface using the [asg017/sqlite-vec-go-bindings](https://github.com/asg017/sqlite-vec-go-bindings) package.
 
-## compare-locations
+## Tools
+
+### compare-locations
 
 Compare two location databases and emit matching records as CSV-encoded rows.
 
@@ -83,7 +85,7 @@ $> ./bin/compare-locations \
 	> /usr/local/data/wof-wof-ny.csv
 ```
 
-## index-locations
+### index-locations
 
 Populate (index) a location database from data/provider source..
 
@@ -115,7 +117,7 @@ $> ./bin/index-locations \
 	/usr/local/data/whosonfirst-data-venue-us-ny/
 ```
 
-## wof-assign-concordances
+### wof-assign-concordances
 
 Assign concordances from a data/provider source to a Who's On First repository..
 
@@ -154,7 +156,7 @@ $> ./bin/wof-assign-concordances \
 	/usr/local/data/ovtr-wof-ny.csv
 ```
 
-## wof-migrate-deprecated
+### wof-migrate-deprecated
 
 Migrate deprecated records from one Who's On First repository to another.
 
@@ -180,7 +182,7 @@ $> ./bin/wof-migrate-deprecated \
 	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
 ```
 
-## wof-process-duplicates
+### wof-process-duplicates
 
 Process duplicate records in a Who's On First repository (which means deprecate and mark as superseding or superseded by where necessary).
 
