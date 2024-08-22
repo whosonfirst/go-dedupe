@@ -12,8 +12,9 @@ import (
 
 // Unlinks a federated identity from an existing account. Unlinked logins will be
 // considered new identities next time they are seen. Removing the last linked
-// login will make this identity inaccessible. This is a public API. You do not
-// need any credentials to call this API.
+// login will make this identity inaccessible.
+//
+// This is a public API. You do not need any credentials to call this API.
 func (c *Client) UnlinkIdentity(ctx context.Context, params *UnlinkIdentityInput, optFns ...func(*Options)) (*UnlinkIdentityOutput, error) {
 	if params == nil {
 		params = &UnlinkIdentityInput{}
@@ -107,6 +108,12 @@ func (c *Client) addOperationUnlinkIdentityMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
+	if err = addTimeOffsetBuild(stack, c); err != nil {
+		return err
+	}
+	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addOpUnlinkIdentityValidationMiddleware(stack); err != nil {

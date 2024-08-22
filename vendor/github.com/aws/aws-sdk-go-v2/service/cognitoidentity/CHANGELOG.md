@@ -1,3 +1,77 @@
+# v1.25.5 (2024-07-10.2)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.25.4 (2024-07-10)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.25.3 (2024-07-08)
+
+* No change notes available for this release.
+
+# v1.25.2 (2024-07-05)
+
+* No change notes available for this release.
+
+# v1.25.1 (2024-06-28)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.25.0 (2024-06-26)
+
+* **Feature**: Support list-of-string endpoint parameter.
+
+# v1.24.1 (2024-06-19)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.24.0 (2024-06-18)
+
+* **Feature**: Track usage of various AWS SDK features in user-agent string.
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.14 (2024-06-17)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.13 (2024-06-07)
+
+* **Bug Fix**: Add clock skew correction on all service clients
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.12 (2024-06-03)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.11 (2024-05-23)
+
+* No change notes available for this release.
+
+# v1.23.10 (2024-05-16)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.9 (2024-05-15)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.23.8 (2024-05-08)
+
+* **Bug Fix**: GoDoc improvement
+
+# v1.23.7 (2024-04-16)
+
+* No change notes available for this release.
+
+# v1.23.6 (2024-04-02)
+
+* No change notes available for this release.
+
+# v1.23.5 (2024-03-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.23.4 (2024-03-18)
 
 * **Dependency Update**: Updated to the latest SDK module versions

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	_ "log"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"sync/atomic"
@@ -91,6 +91,8 @@ func (t *CounterMonitor) Start(ctx context.Context, wr io.Writer) error {
 	now := time.Now()
 	t.start = now
 
+	logger := slog.New(slog.NewTextHandler(wr, nil))
+	
 	go func() {
 
 		for {
@@ -104,12 +106,12 @@ func (t *CounterMonitor) Start(ctx context.Context, wr io.Writer) error {
 				var msg string
 
 				if t.total > 0 {
-					msg = fmt.Sprintf("processed %d/%d records in %v (started %v)\n", atomic.LoadInt64(&t.counter), t.total, time.Since(t.start), t.start)
+					msg = fmt.Sprintf("Processed %d/%d records in %v (started %v)", atomic.LoadInt64(&t.counter), t.total, time.Since(t.start), t.start)
 				} else {
-					msg = fmt.Sprintf("processed %d records in %v (started %v)\n", atomic.LoadInt64(&t.counter), time.Since(t.start), t.start)
+					msg = fmt.Sprintf("Processed %d records in %v (started %v)", atomic.LoadInt64(&t.counter), time.Since(t.start), t.start)
 				}
 
-				wr.Write([]byte(msg))
+				logger.Info(msg)
 			}
 		}
 	}()

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/url"
 	"sync"
 	"time"
@@ -88,6 +88,8 @@ func (t *SinceMonitor) Start(ctx context.Context, wr io.Writer) error {
 	now := time.Now()
 	t.start = now
 
+	logger := slog.New(slog.NewTextHandler(wr, nil))
+	
 	go func() {
 
 		for {
@@ -102,7 +104,7 @@ func (t *SinceMonitor) Start(ctx context.Context, wr io.Writer) error {
 				err := enc.Encode(rsp)
 
 				if err != nil {
-					log.Printf("Failed to encode response, %v", err)
+					logger.Error("Failed to encode response", "rsp", rsp, "error", err)
 				}
 			}
 		}

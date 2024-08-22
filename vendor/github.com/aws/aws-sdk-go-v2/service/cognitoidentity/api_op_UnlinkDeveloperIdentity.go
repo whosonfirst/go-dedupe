@@ -13,8 +13,9 @@ import (
 // Unlinks a DeveloperUserIdentifier from an existing identity. Unlinked developer
 // users will be considered new identities next time they are seen. If, for a given
 // Cognito identity, you remove all federated identities as well as the developer
-// user identifier, the Cognito identity becomes inaccessible. You must use AWS
-// Developer credentials to call this API.
+// user identifier, the Cognito identity becomes inaccessible.
+//
+// You must use AWS Developer credentials to call this API.
 func (c *Client) UnlinkDeveloperIdentity(ctx context.Context, params *UnlinkDeveloperIdentityInput, optFns ...func(*Options)) (*UnlinkDeveloperIdentityOutput, error) {
 	if params == nil {
 		params = &UnlinkDeveloperIdentityInput{}
@@ -116,6 +117,12 @@ func (c *Client) addOperationUnlinkDeveloperIdentityMiddlewares(stack *middlewar
 		return err
 	}
 	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
+	if err = addTimeOffsetBuild(stack, c); err != nil {
+		return err
+	}
+	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addOpUnlinkDeveloperIdentityValidationMiddleware(stack); err != nil {
