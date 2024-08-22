@@ -21,10 +21,9 @@ For background please have a look at the [ De-duplicating Who's On First venues 
 This code works around (1) common struct and (5) interfaces, and their provider-specific implementations. They are:
 
 * [location.Location](location/README.md#locationlocation) – A Go language struct containing a normalized representation of a place or venue.
-
-* [iterator.Iterator](iterator/README.md) – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
 * [location.Parser](location/README.md#locationparser) – A Go language interface for parsing JSON-encoded GeoJSON records and producing `location.Location` instances.
 * [location.Database](location/README.md#locationdatabase) – A Go language interface for storing and querying `location.Location` records.
+* [iterator.Iterator](iterator/README.md) – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
 * [embeddings.Embedder](embeddings/README.md) – A Go language interface for generating vector embeddings from input text.
 * [vector.Database](vector/README.md) – A Go language interface for storing and querying vector embeddings.
 
