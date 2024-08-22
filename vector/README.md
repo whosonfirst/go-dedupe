@@ -50,9 +50,11 @@ If a path contains the string `{tmp}` then the (BleveDatabase) code will create 
 
 Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final database was both really big (multiple dozens of GB if memory serves) and really slow. It is worth revisiting how effective things are with on-demand per-geohash databases.
 
+Use of the `BleveDatabase` implementation requires tools be built with the `-bleve` tag.
+
 #### ChromemDatabase
 
-The `ChromemOllamaEmbedder` implementation uses the [philippgille/chromem-go](https://github.com/philippgille/chromem-go) package to store and query vector embeddings. In turn `chromem-go` uses the [Ollama application's REST API](https://github.com/ollama/ollama?tab=readme-ov-file#rest-api) to generate embeddings for a text. This package assumes that the Ollama application has already installed, is running and set up to use the models necessary to generate embeddings. Please consult the [Ollama documentation](https://github.com/ollama/ollama) for details.
+The `ChromemDatabase` implementation uses the [philippgille/chromem-go](https://github.com/philippgille/chromem-go) package to store and query vector embeddings. In turn `chromem-go` uses the [Ollama application's REST API](https://github.com/ollama/ollama?tab=readme-ov-file#rest-api) to generate embeddings for a text. This package assumes that the Ollama application has already installed, is running and set up to use the models necessary to generate embeddings. Please consult the [Ollama documentation](https://github.com/ollama/ollama) for details.
 
 The syntax for creating a new `ChromemDatabase` is:
 
@@ -75,9 +77,44 @@ Valid parameters for the `ChromemDatabase` implemetation are:
 
 Note: This code was last tested before the adoption of small, temporary databases. When indexing 7.3M Overture Data place records the final (on-disk) database was both really big (almost 100 GB, I think) and really slow. It is worth revisiting how effective things are with on-demand and in-memory per-geohash databases.
 
+Use of the `ChromemDatabase` implementation requires tools be built with the `-chromem` tag.
+
+#### DuckDB
+
+The `DuckDBDatabase` uses the [DuckDB](https://duckdb.org/) database and the [VSS extension](https://duckdb.org/docs/extensions/vss) to store and query vector embeddings.
+
+The syntax for creating a new `DuckDBDatabase` is:
+
+```
+import (
+	"context"
+
+	_ "github.com/marcboeker/go-duckdb"
+	"github.com/whosonfirst/go-dedupe/vector"
+)
+
+ctx := context.Background()
+, _ := vector.NewDatabase(ctx, "duckdb://?{PARAMETERS")
+```
+
+Valid parameters for the `DuckDBDatabase` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| embedder-uri | string | yes | A valid `Embedder` URI. |
+| dimensions | int | no | The dimensionality of the vector embeddings to store and query. Default is `768`. |
+| max_distance | float | no | The maximum distance between any two records being queried. Default is `5.0` |
+| max_results | int | no | The maximum number of results to return for any given query. Default is `10` |
+| refresh | bool | no | A boolean flag to indicate whether existing records should be updated. Default is `false`. |
+| max-conns | int | no | If defined, sets the maximum number of open connections to the database. |
+
+`DuckDBDatabase` do not take a DSN parameter since, as of this writing, vector embeddings [are not (can not) be persisted to disk](https://duckdb.org/docs/extensions/vss#persistence) yet.
+
+Use of the `DuckDBDatabase` implementation requires tools be built with the `-duckdb` tag.
+
 #### OpensearchDatabase
 
-The `OpensearchDatabase` uses the [OpenSearch]() document storage engine to store and query vector embeddings.
+The `OpensearchDatabase` uses the [OpenSearch](https://opensearch.org/) document storage engine to store and query vector embeddings.
 
 The syntax for creating a new `OpensearchDatabase` is:
 
@@ -109,6 +146,8 @@ Given 7.3M Overture places and a containerized single-node OpenSearch instance (
 Querying anything (for example `cmd/compare-alltheplaces`) is brutally slow, like "20771 records in 3h20m0" and the log files are full of "knn.circuit_breaker.triggered" errors. The (containerized) CPU was often pegged at 100% using a steady 15GB of RAM. This is using a single synchronous worker to do lookups. Anything more seems to cause the container to kill itself after a while.
 
 Additionally, all of the steps required to [configure Opensearch as a vector database](https://opensearch.org/docs/latest/search-plugins/semantic-search/) are assumed to have happened _before_ constructor (above) is invoked. This code was last tested before the adoption of small, temporary databases and it is something worth revisiting but this will also require adding code to spin up, configure and tear down individual (per-geohash) OpenSearch indices on demand. Have a look at the [Makefile is this directory](Makefile) for an example of all the steps necessary to make this possible.
+
+Use of the `OpenSearchDatabase` implementation requires tools be built with the `-opensearch` tag.
 
 #### SQLiteDatabase
 
@@ -144,3 +183,5 @@ Valid parameters for the `SQLiteDatabase` implemetation are:
 By default DSN strings take the form detailed in the [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) documentation.
 
 If a DSN contains the string `{tmp}` then the (SQLiteDatabase) code will create a new SQLite database to be used for storing and querying documents. That database will be created in whatever temporary folder the operating system defines and removed the (SQLiteDatabase) `Close` method is invoked.
+
+Use of the `SQLiteDatabase` implementation requires tools be built with the `-sqlite_vec` tag.

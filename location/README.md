@@ -137,6 +137,8 @@ db, _ := location.NewDatabase(ctx, "bleve://{PATH_TO_DATABASE}")
 
 Where `{PATH_TO_DATABASE}` is a valid path on the local disk where the Bleve database should be stored.
 
+Use of the `BleveDatabase` implementation requires tools be built with the `-bleve` tag.
+
 #### SQLDatabase
 
 The `SQLDatabase` implentation uses the native `database/sql` package to store and query location records.
@@ -164,4 +166,8 @@ Valid parameters for the `SQLDatabase` implemetation are:
 | dsn| string | yes | A valid valid [database/sql DSN string](https://pkg.go.dev/database/sql) specific to the database driver/engine being used. |
 | max-conns | int | no | If defined, sets the maximum number of open connections to the database. |
 
-Note: So far only support (and schemas) for [SQLite](https://github.com/mattn/go-sqlite3) has been tested.
+Note: So far only support (and schemas) for [SQLite](https://github.com/mattn/go-sqlite3) and [DuckDB](https://github.com/marcboeker/go-duckdb) have been tested.
+
+Use of the `SQLDatabase` implementation with SQLite requires tools be built with the `-sqlite3` tag.
+
+Use of the `SQLDatabase` implementation with DuckDB requires tools be built with the `-duckdb` tag.

@@ -1,4 +1,4 @@
-//go:build sqlite3
+//go:build sqlite
 
 package location
 

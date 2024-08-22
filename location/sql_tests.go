@@ -66,7 +66,7 @@ func testSQLDatabaseEngine(ctx context.Context, engine string) error {
 	}
 
 	// To do: GetByGeohash, etc.
-	
+
 	err = db.Close(ctx)
 
 	if err != nil {
