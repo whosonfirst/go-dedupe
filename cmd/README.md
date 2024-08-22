@@ -3,15 +3,47 @@
 ```
 $> make cli
 cd ../ && make cli && cd -
-go build -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
-go build -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
+go build -tags sqlite,sqlite_vec,duckdb,ollama -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
+go build -tags sqlite,sqlite_vec,duckdb,ollama -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-assign-concordances cmd/wof-assign-concordances/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-migrate-deprecated cmd/wof-migrate-deprecated/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-process-duplicates cmd/wof-process-duplicates/main.go
 /usr/local/whosonfirst/go-dedupe/cmd
 ```
 
-## compare-locations
+## Build tags
+
+Location and vector database implementations are enabled through the use of [Go build tags](https://pkg.go.dev/go/build). The default Makefile `cli` target enables the following tags automatically: `sqlite,sqlite_vec,duckdb,ollama`.
+
+### chromem
+
+Required to use the `ChromemDatabase` or the `ChromemOllamaEmbedder` implementations of the `vector.Database` and `embeddings.Embedder` interfaces, respectively, using the [philippgille/chromem-go](https://github.com/philippgille/chromem-go) package.
+
+### duckdb
+
+Required to use the `DuckDBDatabase` implementations of the `vector.Database` and `location.Database` interfaces using the [marcboeker/go-duckdb](https://github.com/marcboeker/go-duckdb) package.
+
+_If you encounter problems building the tools it might have something to do with the way `go-duckdb` is vendored. The best place to start debugging things is [this section in the go-duckdb documentation](https://github.com/marcboeker/go-duckdb?tab=readme-ov-file#vendoring)._
+
+### ollama
+
+Required to use the `OllamaEmbedder` implementation of the `embeddings.Embedder` interface, using the [Ollama REST API](https://github.com/ollama/ollama/blob/main/docs/api.md).
+
+### opensearch
+
+Required to use the `OpensearchDatabase` implementation of the `vector.Database` interface, using the [opensearch-project/opensearch-go](https://github.com/opensearch-project/opensearch-go) package.
+
+### sqlite
+
+Required to use the `SQLDatabase` implementation of the `location.Database` interface using the [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) package.
+
+### sqlite_vec
+
+Required to use the `SQLiteDatabase` implementation of the `vector.Database` interface using the [asg017/sqlite-vec-go-bindings](https://github.com/asg017/sqlite-vec-go-bindings) package.
+
+## Tools
+
+### compare-locations
 
 Compare two location databases and emit matching records as CSV-encoded rows.
 
@@ -53,7 +85,7 @@ $> ./bin/compare-locations \
 	> /usr/local/data/wof-wof-ny.csv
 ```
 
-## index-locations
+### index-locations
 
 Populate (index) a location database from data/provider source..
 
@@ -85,7 +117,7 @@ $> ./bin/index-locations \
 	/usr/local/data/whosonfirst-data-venue-us-ny/
 ```
 
-## wof-assign-concordances
+### wof-assign-concordances
 
 Assign concordances from a data/provider source to a Who's On First repository..
 
@@ -124,7 +156,7 @@ $> ./bin/wof-assign-concordances \
 	/usr/local/data/ovtr-wof-ny.csv
 ```
 
-## wof-migrate-deprecated
+### wof-migrate-deprecated
 
 Migrate deprecated records from one Who's On First repository to another.
 
@@ -150,7 +182,7 @@ $> ./bin/wof-migrate-deprecated \
 	-target-repo /usr/local/data/whosonfirst-data-deprecated-venue/
 ```
 
-## wof-process-duplicates
+### wof-process-duplicates
 
 Process duplicate records in a Who's On First repository (which means deprecate and mark as superseding or superseded by where necessary).
 

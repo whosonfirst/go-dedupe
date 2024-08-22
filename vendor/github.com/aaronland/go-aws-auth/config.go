@@ -61,6 +61,10 @@ func NewConfig(ctx context.Context, uri string) (aws.Config, error) {
 
 	creds := q.Get("credentials")
 
+	if region == "" {
+		region = q.Get("region")
+	}
+
 	cfg, err := NewConfigWithCredentialsString(ctx, creds)
 
 	if err != nil {

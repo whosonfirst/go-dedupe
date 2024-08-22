@@ -11,8 +11,9 @@ import (
 )
 
 // Deletes an identity pool. Once a pool is deleted, users will not be able to
-// authenticate with the pool. You must use AWS Developer credentials to call this
-// API.
+// authenticate with the pool.
+//
+// You must use AWS Developer credentials to call this API.
 func (c *Client) DeleteIdentityPool(ctx context.Context, params *DeleteIdentityPoolInput, optFns ...func(*Options)) (*DeleteIdentityPoolOutput, error) {
 	if params == nil {
 		params = &DeleteIdentityPoolInput{}
@@ -99,6 +100,12 @@ func (c *Client) addOperationDeleteIdentityPoolMiddlewares(stack *middleware.Sta
 		return err
 	}
 	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
+	if err = addTimeOffsetBuild(stack, c); err != nil {
+		return err
+	}
+	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addOpDeleteIdentityPoolValidationMiddleware(stack); err != nil {

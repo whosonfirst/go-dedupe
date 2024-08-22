@@ -1,3 +1,5 @@
+//go:build chromem
+
 package embeddings
 
 import (

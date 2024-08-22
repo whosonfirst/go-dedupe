@@ -1,5 +1,4 @@
-//go:build vectors
-// +build vectors
+//go:build bleve
 
 package vector
 

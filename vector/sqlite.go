@@ -1,3 +1,5 @@
+//go:build sqlite_vec
+
 package vector
 
 // https://alexgarcia.xyz/blog/2024/sqlite-vec-stable-release/index.html

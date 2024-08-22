@@ -1,3 +1,5 @@
+//go:build opensearch
+
 package vector
 
 // https://opensearch.org/docs/latest/search-plugins/semantic-search/

@@ -21,10 +21,9 @@ For background please have a look at the [ De-duplicating Who's On First venues 
 This code works around (1) common struct and (5) interfaces, and their provider-specific implementations. They are:
 
 * [location.Location](location/README.md#locationlocation) – A Go language struct containing a normalized representation of a place or venue.
-
-* [iterator.Iterator](iterator/README.md) – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
 * [location.Parser](location/README.md#locationparser) – A Go language interface for parsing JSON-encoded GeoJSON records and producing `location.Location` instances.
 * [location.Database](location/README.md#locationdatabase) – A Go language interface for storing and querying `location.Location` records.
+* [iterator.Iterator](iterator/README.md) – A Go language interface for iterating through arbirtrary database sources and emiting JSON-encoded GeoJSON records.
 * [embeddings.Embedder](embeddings/README.md) – A Go language interface for generating vector embeddings from input text.
 * [vector.Database](vector/README.md) – A Go language interface for storing and querying vector embeddings.
 
@@ -46,7 +45,7 @@ There are a few things to note about this approach:
 * Likewise, if `location.Location` records have been supplemented with Who's On First hierarchies (on ingest or at runtime) then they might also be filtered by geohash _and_ region to account for the fact that the same geohash can span multiple administrative boundaries (for example `dr5re`).
 * This code works best with small and short-lived (temporary) vector databases on disk or in memory. Storing and querying millions of venue records and their embeddings on consumer grade hardware (my laptop) is generally slow and impractical. Many (but not all, yet) of the `vector.Database` implementations have been configured with the ability to create (and remove) temporary databases automatically. Details are discussed in the [documentation for vector databases](vector/README.md).
 
-As of this writing most of the work has been centered around the SQLite implementations for [location databases](location/README.md#sqldatabase) and [vector databases](https://github.com/whosonfirst/go-dedupe/blob/main/vector/README.md#sqlitedatabase) and the Ollama implementation for [generating embeddings](embeddings/README.md#ollamaembedder). Details for each are discussed in their respective packages.
+As of this writing most of the work has been centered around the SQLite and DuckDB implementations for [location databases](location/README.md) and [vector databases](https://github.com/whosonfirst/go-dedupe/blob/main/vector/README.md) and the Ollama implementation for [generating embeddings](embeddings/README.md#ollamaembedder). Details for each are discussed in their respective packages.
 
 ## Data sources (providers)
 
@@ -61,14 +60,14 @@ The following data source (providers) have working implementations (iterators an
 
 ```
 $> make cli
-go build -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
-go build -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
+go build -tags sqlite,sqlite_vec,duckdb,ollama -mod vendor -ldflags="-s -w" -o bin/compare-locations cmd/compare-locations/main.go
+go build -tags sqlite,sqlite_vec,duckdb,ollama -mod vendor -ldflags="-s -w" -o bin/index-locations cmd/index-locations/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-assign-concordances cmd/wof-assign-concordances/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-migrate-deprecated cmd/wof-migrate-deprecated/main.go
 go build -mod vendor -ldflags="-s -w" -o bin/wof-process-duplicates cmd/wof-process-duplicates/main.go
 ```
 
-Documentation and details for these tools can be found in the [cmd/README.md](cmd/README.md) file.
+Documentation and details for these tools (and their build tags) can be found in the [cmd/README.md](cmd/README.md) file.
 
 The following examples will show the work flow for prepping and comparing a Who's On First (WOF) venue repository against a collection of Overture Data place records and then assigning concordances (matching records) to the WOF venues.
 

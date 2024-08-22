@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/whosonfirst/go-dedupe/sqlite"
+	"github.com/whosonfirst/go-dedupe/database"
 )
 
 type SQLDatabase struct {
@@ -52,24 +52,33 @@ func NewSQLDatabase(ctx context.Context, uri string) (Database, error) {
 		dsn:    dsn,
 	}
 
-	if engine == "sqlite3" {
+	opts := database.DefaultConfigureSQLDatabaseOptions()
+	opts.CreateTablesIfNecessary = true
 
-		opts := sqlite.DefaultConfigureDatabaseOptions()
-		opts.CreateTablesIfNecessary = true
+	opts.Tables = []*database.SQLTable{
+		&database.SQLTable{
+			Name:   "locations",
+			Schema: "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE INDEX locations_by_geohash ON locations (geohash);",
+		},
+	}
 
-		opts.Tables = []*sqlite.Table{
-			&sqlite.Table{
-				Name:   "locations",
-				Schema: "CREATE TABLE locations (id TEXT PRIMARY KEY, geohash TEXT, body TEXT); CREATE INDEX `locations_by_geohash` ON `locations` (`geohash`);",
-			},
-		}
+	err = database.ConfigureSQLDatabase(ctx, db.conn, opts)
 
-		err := sqlite.ConfigureDatabase(ctx, db.conn, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	switch engine {
+	case "sqlite3":
+
+		pragma := database.DefaultSQLitePragma()
+		err := database.ConfigureSQLitePragma(ctx, db.conn, pragma)
 
 		if err != nil {
 			return nil, err
 		}
-
+	default:
+		//
 	}
 
 	if q.Has("max-conns") {
@@ -101,7 +110,7 @@ func (db *SQLDatabase) AddLocation(ctx context.Context, loc *Location) error {
 		return fmt.Errorf("Failed to marshal location, %w", err)
 	}
 
-	q := "REPLACE INTO locations (`id`, `geohash`, `body`) VALUES (?, ?, ?)"
+	q := "INSERT OR REPLACE INTO locations (id, geohash, body) VALUES (?, ?, ?)"
 
 	_, err = db.conn.ExecContext(ctx, q, id, geohash, string(enc_loc))
 

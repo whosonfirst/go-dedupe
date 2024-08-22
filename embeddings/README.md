@@ -37,6 +37,8 @@ Valid parameters for the `ChromemOllamaEmbedder` implemetation are:
 | --- | --- | --- | --- |
 | model | string| yes | The name of the model you want to Ollama API to use when generating embeddings. |
 
+Use of the `ChromemOllamaEmbedder` implementation requires tools be built with the `-chromem` tag.
+
 #### OllamaEmbedder
 
 The `OllamaEmbedder` implementation uses the [Ollama application's REST API](https://github.com/ollama/ollama?tab=readme-ov-file#rest-api) to generate embeddings for a text. This package assumes that the Ollama application has already installed, is running and set up to use the models necessary to generate embeddings. Please consult the [Ollama documentation](https://github.com/ollama/ollama) for details.
@@ -59,3 +61,5 @@ Valid parameters for the `OllamaEmbedder` implemetation are:
 | Name | Value | Required | Notes |
 | --- | --- | --- | --- |
 | model | string| yes | The name of the model you want to Ollama API to use when generating embeddings. |
+
+Use of the `OllamaEmbedder` implementation requires tools be built with the `-ollama` tag.
