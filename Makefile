@@ -7,3 +7,7 @@ cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-assign-concordances cmd/wof-assign-concordances/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-migrate-deprecated cmd/wof-migrate-deprecated/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-process-duplicates cmd/wof-process-duplicates/main.go
+
+# https://github.com/marcboeker/go-duckdb?tab=readme-ov-file#vendoring
+modvendor:
+	modvendor -copy="**/*.a **/*.h" -v
