@@ -60,6 +60,8 @@ ctx := context.Background()
 e, _ := embeddings.NewEmbedder(ctx, "llamafile://{HOST}:{PORT}?{PARAMETERS")
 ```
 
+Where `{HOST}` and `{PORT}` are the hostname and port the llamafile API is listening for requests on. Defaults, if omitted, are "localhost" and "8080", respectively.
+
 Valid parameters for the `LlamafileEmbedder` implemetation are:
 
 | Name | Value | Required | Notes |
