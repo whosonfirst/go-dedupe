@@ -52,33 +52,37 @@ func (i *WhosOnFirstIterator) Iterate(ctx context.Context, uris ...string) iter.
 
 	return func(yield func([]byte, error) bool) {
 
+		slog.Debug("OMGWTF", "yield", yield)
 		wof_cb := func(ctx context.Context, path string, r io.ReadSeeker, args ...interface{}) error {
 
+			slog.Debug("BBQ", "path", path)
 			body, err := io.ReadAll(r)
 
 			if err != nil {
+				slog.Error("WUT", "error", err)
 				yield(nil, err)
 				return fmt.Errorf("Failed to read both for %s, %w", path, err)
 			}
 
-			if !yield(body, nil) {
-				return fmt.Errorf("Failed to yield record for %s", path)
-			}
-
+			slog.Debug("YIELD", "body", len(body))
+			ok := yield(nil, nil)
+			slog.Debug("OK", "ok", ok)
 			return nil
 		}
 
 		wof_iter, err := wof_iterator.NewIterator(ctx, i.iterator_uri, wof_cb)
 
 		if err != nil {
-			yield(nil, err)
+			slog.Debug("ERROR1", "error", err)
+			// yield(nil, err)
 			return
 		}
 
 		err = wof_iter.IterateURIs(ctx, uris...)
 
 		if err != nil {
-			yield(nil, err)
+			slog.Debug("ERROR2", "error", err)			
+			// yield(nil, err)
 			return
 		}
 

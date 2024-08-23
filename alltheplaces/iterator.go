@@ -104,17 +104,19 @@ func (iter *AllThePlacesIterator) Iterate(ctx context.Context, uris ...string) i
 
 			for offset, f := range fc.Features {
 
+				/*
 				<-throttle
 
 				wg.Add(1)
 
-				go func(offset int, f *geojson.Feature) {
+				 go func(offset int, f *geojson.Feature) {
 
 					defer func() {
 						wg.Done()
 						throttle <- true
 					}()
-
+				*/
+				
 					body, err := f.MarshalJSON()
 
 					if err != nil {
@@ -122,11 +124,9 @@ func (iter *AllThePlacesIterator) Iterate(ctx context.Context, uris ...string) i
 						return
 					}
 
-					if !yield(body, nil) {
-						logger.Warn("Failed to yield record", "offset", offset)
-					}
+					yield(body, nil)
 
-				}(offset, f)
+				// }(offset, f)
 			}
 		}
 
