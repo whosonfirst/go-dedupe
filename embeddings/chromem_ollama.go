@@ -53,10 +53,10 @@ func (e *ChromemOllamaEmbedder) Embeddings32(ctx context.Context, content string
 	return e.embeddings_func(ctx, content)
 }
 
-func (e *ChromemOllamaEmbedder) ImageEmbeddings(ctx context.Context, content string) ([]float64, error) {
+func (e *ChromemOllamaEmbedder) ImageEmbeddings(ctx context.Context, data []byte) ([]float64, error) {
 	return nil, dedupe.NotImplemented()
 }
 
-func (e *ChromemOllamaEmbedder) ImageEmbeddings32(ctx context.Context, content string) ([]float32, error) {
+func (e *ChromemOllamaEmbedder) ImageEmbeddings32(ctx context.Context, data []byte) ([]float32, error) {
 	return nil, dedupe.NotImplemented()
 }

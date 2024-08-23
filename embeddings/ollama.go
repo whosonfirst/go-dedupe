@@ -112,10 +112,10 @@ func (e *OllamaEmbedder) Embeddings32(ctx context.Context, content string) ([]fl
 	return asFloat32(e64), nil
 }
 
-func (e *OllamaEmbedder) ImageEmbeddings(ctx context.Context, content string) ([]float64, error) {
+func (e *OllamaEmbedder) ImageEmbeddings(ctx context.Context, data []byte) ([]float64, error) {
 	return nil, dedupe.NotImplemented()
 }
 
-func (e *OllamaEmbedder) ImageEmbeddings32(ctx context.Context, content string) ([]float32, error) {
+func (e *OllamaEmbedder) ImageEmbeddings32(ctx context.Context, data []byte) ([]float32, error) {
 	return nil, dedupe.NotImplemented()
 }

@@ -3,21 +3,25 @@
 package embeddings
 
 // https://github.com/Mozilla-Ocho/llamafile/blob/main/llama.cpp/server/README.md#api-endpoints
+// https://github.com/Mozilla-Ocho/llamafile?tab=readme-ov-file#other-example-llamafiles
+//
 // curl --request POST --url http://localhost:8080/embedding --header "Content-Type: application/json" --data '{"content": "Hello world" }'
 
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	_ "io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type LlamafileImageDataEmbeddingRequest struct {
-	Id   string `json:"id"`
+	Id   int64  `json:"id"`
 	Data string `json:"data"`
 }
 
@@ -119,11 +123,16 @@ func (e *LlamafileEmbedder) Embeddings32(ctx context.Context, content string) ([
 	return asFloat32(e64), nil
 }
 
-func (e *LlamafileEmbedder) ImageEmbeddings(ctx context.Context, content string) ([]float64, error) {
+func (e *LlamafileEmbedder) ImageEmbeddings(ctx context.Context, data []byte) ([]float64, error) {
+
+	data_b64 := base64.StdEncoding.EncodeToString(data)
+
+	now := time.Now()
+	ts := now.Unix()
 
 	image_req := &LlamafileImageDataEmbeddingRequest{
-		Data: content,
-		Id:   "1",
+		Data: data_b64,
+		Id:   ts,
 	}
 
 	req := &LlamafileEmbeddingRequest{
@@ -141,9 +150,9 @@ func (e *LlamafileEmbedder) ImageEmbeddings(ctx context.Context, content string)
 	return rsp.Embeddings, nil
 }
 
-func (e *LlamafileEmbedder) ImageEmbeddings32(ctx context.Context, content string) ([]float32, error) {
+func (e *LlamafileEmbedder) ImageEmbeddings32(ctx context.Context, data []byte) ([]float32, error) {
 
-	e64, err := e.ImageEmbeddings(ctx, content)
+	e64, err := e.ImageEmbeddings(ctx, data)
 
 	if err != nil {
 		return nil, err

@@ -23,7 +23,9 @@ func TestOllamafileImageEmbeddings(t *testing.T) {
 		t.Fatalf("Failed to create embedder, %v", err)
 	}
 
-	_, err = emb.ImageEmbeddings(ctx, "")
+	var data []byte
+
+	_, err = emb.ImageEmbeddings(ctx, data)
 
 	if !dedupe.IsNotImplementedError(err) {
 		t.Fatalf("Unexpected error, %v", err)

@@ -4,7 +4,6 @@ package embeddings
 
 import (
 	"context"
-	"encoding/base64"
 	"io"
 	"os"
 	"testing"
@@ -57,9 +56,7 @@ func TestLlamafileImageEmbeddings(t *testing.T) {
 		t.Fatalf("Failed to read data from %s, %v", im_path, err)
 	}
 
-	im_b64 := base64.StdEncoding.EncodeToString(im_body)
-
-	rsp, err := emb.ImageEmbeddings(ctx, im_b64)
+	rsp, err := emb.ImageEmbeddings(ctx, im_body)
 
 	if err != nil {
 		t.Fatalf("Failed to derive embeddings, %v", err)
