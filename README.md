@@ -75,6 +75,10 @@ The following data source (providers) have working implementations (iterators an
 * [llamafile (API)](embeddings#llamafileembedder)
 * [Ollama (API)](embeddings#ollamaembedder)
 
+### Embeddings implementations (third-party)
+
+* [MLX CLIP](https://github.com/sfomuseum/go-embeddings-mlxclip)
+
 ## Example
 
 ```
