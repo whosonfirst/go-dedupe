@@ -25,6 +25,10 @@ Required to use the `DuckDBDatabase` implementations of the `vector.Database` an
 
 _If you encounter problems building the tools it might have something to do with the way `go-duckdb` is vendored. The best place to start debugging things is [this section in the go-duckdb documentation](https://github.com/marcboeker/go-duckdb?tab=readme-ov-file#vendoring)._
 
+### llamafile
+
+Required to use the `LlamafileEmbedder` implementation of the `embeddings.Embedder` interface, using the [llamafile REST API](https://github.com/Mozilla-Ocho/llamafile/blob/main/llama.cpp/server/README.md#api-endpoints).
+
 ### ollama
 
 Required to use the `OllamaEmbedder` implementation of the `embeddings.Embedder` interface, using the [Ollama REST API](https://github.com/ollama/ollama/blob/main/docs/api.md).

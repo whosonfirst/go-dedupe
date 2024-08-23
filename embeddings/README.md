@@ -7,8 +7,12 @@
 type Embedder interface {
 	// Embeddings returns the embeddings for a string as a list of float64 values.
 	Embeddings(context.Context, string) ([]float64, error)
-	// Embeddings32 returns the embeddings for a string as a list of float32 values.	
+	// Embeddings32 returns the embeddings for a string as a list of float32 values.
 	Embeddings32(context.Context, string) ([]float32, error)
+	// ImageEmbeddings returns the embeddings for a base64-encoded image as a list of float64 values.	
+	ImageEmbeddings(context.Context, string) ([]float64, error)
+	// ImageEmbeddings32 returns the embeddings for a base64-encoded image as a list of float32 values.		
+	ImageEmbeddings32(context.Context, string) ([]float32, error)
 }
 ```
 
@@ -38,6 +42,31 @@ Valid parameters for the `ChromemOllamaEmbedder` implemetation are:
 | model | string| yes | The name of the model you want to Ollama API to use when generating embeddings. |
 
 Use of the `ChromemOllamaEmbedder` implementation requires tools be built with the `-chromem` tag.
+
+#### LlamafileEmbedder
+
+The `LlamafileEmbedder` implementation uses the [llamafile application's REST API](https://github.com/Mozilla-Ocho/llamafile/blob/main/llama.cpp/server/README.md#api-endpoints) to generate embeddings for a text. This package assumes that the llamafile application has already installed, is running and set up to use the models necessary to generate embeddings. Please consult the [llamafile documentation](https://github.com/Mozilla-Ocho/llamafile/tree/main) for details.
+
+The syntax for creating a new `LlamafileEmbedder` is:
+
+```
+import (
+	"context"
+	
+	"github.com/whosonfirst/go-dedupe/embeddings"
+)
+
+ctx := context.Background()
+, _ := embeddings.NewEmbedder(ctx, "llamafile://{HOST}:{PORT}?{PARAMETERS")
+```
+
+Valid parameters for the `LlamafileEmbedder` implemetation are:
+
+| Name | Value | Required | Notes |
+| --- | --- | --- | --- |
+| tls | boolean| no | A boolean flag signaling that requests to the llamafile API should be made using a secure connection. Default is false. |
+
+Use of the `LlamafileEmbedder` implementation requires tools be built with the `-llamafile` tag.
 
 #### OllamaEmbedder
 
