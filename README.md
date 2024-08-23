@@ -56,6 +56,25 @@ The following data source (providers) have working implementations (iterators an
 * [Overture Data](https://docs.overturemaps.org/guides/places/) (Places)
 * [Who's On First](https://github.com/whosonfirst-data/?q=whosonfirst-data-venue&type=all&language=&sort=) (Venues)
 
+## Location database implementations
+
+* [Bleve](location#blevedatabase)
+* [DuckDB](location#sqldatabase)
+* [SQLite](location#sqldatabase)
+
+## Vector database implementation
+
+* [Bleve](vector#blevedatabase)
+* [Chromem](vector#chromemdatabase)
+* [DuckDB](vector#duckdb)
+* [SQLite](vector#sqlitedatabase)
+
+## Embeddings implementations
+
+* [Chromem (Ollama API)](embeddings#chromemollamaembedder)
+* [llamafile (API)](embeddings#llamafileembedder)
+* [Ollama (API)](embeddings#ollamaembedder)
+
 ## Example
 
 ```
