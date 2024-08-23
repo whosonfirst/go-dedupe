@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"log/slog"
 	"net/url"
 	"strconv"
@@ -146,86 +147,102 @@ func (db *SQLDatabase) GetById(ctx context.Context, id string) (*Location, error
 	return loc, nil
 }
 
-func (db *SQLDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
+func (db *SQLDatabase) GetGeohashes(ctx context.Context) iter.Seq2[string, error] {
 
-	// To do: Make ASC / DESC a config option
+	return func(yield func(string, error) bool) {
 
-	q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count DESC"
-	slog.Debug("Get geohashes", "query", q)
+		// To do: Make ASC / DESC a config option
 
-	rows, err := db.conn.QueryContext(ctx, q)
+		q := "SELECT geohash, COUNT(id) AS count FROM locations GROUP BY geohash ORDER BY count DESC"
+		slog.Debug("Get geohashes", "query", q)
 
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var geohash string
-		var count int
-
-		err := rows.Scan(&geohash, &count)
+		rows, err := db.conn.QueryContext(ctx, q)
 
 		if err != nil {
-			return err
+			yield("", err)
+			return
 		}
 
-		slog.Debug("Handle geohash", "geohash", geohash)
-		err = cb(ctx, geohash)
+		defer rows.Close()
 
-		if err != nil {
-			return fmt.Errorf("Callback failed for geohash %s, %w", geohash, err)
+		for rows.Next() {
+
+			var geohash string
+			var count int
+
+			err := rows.Scan(&geohash, &count)
+
+			if err != nil {
+				yield("", err)
+				return
+			}
+
+			slog.Debug("Handle geohash", "geohash", geohash)
+
+			if !yield(geohash, nil) {
+				break
+			}
 		}
+
+		return
 	}
 
-	return rows.Err()
 }
 
-func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
+func (db *SQLDatabase) GetWithGeohash(ctx context.Context, geohash string) iter.Seq2[*Location, error] {
 
-	q := "SELECT body FROM locations WHERE geohash = ?"
-	slog.Debug("Get with geohash", "query", q, "geohash", geohash, "database", db)
+	return func(yield func(*Location, error) bool) {
 
-	rows, err := db.conn.QueryContext(ctx, q, geohash)
+		q := "SELECT body FROM locations WHERE geohash = ?"
+		slog.Debug("Get with geohash", "query", q, "geohash", geohash, "database", db)
 
-	if err != nil {
-		slog.Error("Failed to query", "error", err)
-		return err
+		rows, err := db.conn.QueryContext(ctx, q, geohash)
+
+		if err != nil {
+			slog.Error("Failed to query", "error", err)
+			yield(nil, err)
+			return
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var body []byte
+
+			err := rows.Scan(&body)
+
+			if err != nil {
+				slog.Error("Failed to scan location body", "error", err)
+				yield(nil, err)
+				return
+			}
+
+			var loc *Location
+
+			err = json.Unmarshal(body, &loc)
+
+			if err != nil {
+				slog.Error("Failed to unmarshal location", "error", err)
+				yield(nil, err)
+				return
+			}
+
+			slog.Debug("Process location for geohash", "geohash", geohash, "location", loc.String())
+
+			if !yield(loc, err) {
+				break
+			}
+		}
+
+		err = rows.Err()
+
+		if err != nil {
+			yield(nil, err)
+		}
+
+		return
 	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var body []byte
-
-		err := rows.Scan(&body)
-
-		if err != nil {
-			slog.Error("Failed to scan location body", "error", err)
-			return err
-		}
-
-		var loc *Location
-
-		err = json.Unmarshal(body, &loc)
-
-		if err != nil {
-			slog.Error("Failed to unmarshal location", "error", err)
-			return err
-		}
-
-		slog.Debug("Process location for geohash", "geohash", geohash, "location", loc.String())
-		err = cb(ctx, loc)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return rows.Err()
 }
 
 func (db *SQLDatabase) Close(ctx context.Context) error {

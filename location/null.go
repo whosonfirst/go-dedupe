@@ -3,6 +3,7 @@ package location
 import (
 	"context"
 	"fmt"
+	"iter"
 )
 
 type NullDatabase struct{}
@@ -29,12 +30,16 @@ func (db *NullDatabase) GetById(ctx context.Context, id string) (*Location, erro
 	return nil, fmt.Errorf("Not found")
 }
 
-func (db *NullDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallback) error {
-	return nil
+func (db *NullDatabase) GetGeohashes(ctx context.Context) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		return
+	}
 }
 
-func (db *NullDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
-	return nil
+func (db *NullDatabase) GetWithGeohash(ctx context.Context, geohash string) iter.Seq2[*Location, error] {
+	return func(yield func(*Location, error) bool) {
+		return
+	}
 }
 
 func (db *NullDatabase) Close(ctx context.Context) error {

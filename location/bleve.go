@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	_ "log/slog"
 	"net/url"
 	"os"
@@ -131,35 +132,38 @@ func (db *BleveDatabase) GetGeohashes(ctx context.Context, cb GetGeohashesCallba
 	return fmt.Errorf("Not implemeted")
 }
 
-func (db *BleveDatabase) GetWithGeohash(ctx context.Context, geohash string, cb GetWithGeohashCallback) error {
+func (db *BleveDatabase) GetWithGeohash(ctx context.Context, geohash string) iter.Seq2[*Location, error] {
 
-	q := bleve.NewMatchQuery(geohash)
+	return func(yield func(*Location, error) bool) {
 
-	req := bleve.NewSearchRequest(q)
-	req.Fields = []string{"location"}
+		q := bleve.NewMatchQuery(geohash)
 
-	rsp, err := db.index.Search(req)
+		req := bleve.NewSearchRequest(q)
+		req.Fields = []string{"location"}
 
-	if err != nil {
-		return err
-	}
-
-	for _, m := range rsp.Hits {
-
-		loc, err := db.locationFromDocumentMatch(m)
+		rsp, err := db.index.Search(req)
 
 		if err != nil {
-			return err
+			yield(nil, err)
+			return
 		}
 
-		if loc.Geohash() != geohash {
-			continue
-		}
+		for _, m := range rsp.Hits {
 
-		err = cb(ctx, loc)
+			loc, err := db.locationFromDocumentMatch(m)
 
-		if err != nil {
-			return err
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+
+			if loc.Geohash() != geohash {
+				continue
+			}
+
+			if !yield(loc, err) {
+				break
+			}
 		}
 	}
 

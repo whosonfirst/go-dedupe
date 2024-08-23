@@ -64,15 +64,13 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 
 	geohashes := make([]string, 0)
 
-	geohashes_cb := func(ctx context.Context, geohash string) error {
+	for geohash, err := range target_database.GetGeohashes(ctx) {
+
+		if err != nil {
+			return fmt.Errorf("Failed to resolve geohash, %w", err)
+		}
+
 		geohashes = append(geohashes, geohash)
-		return nil
-	}
-
-	err = target_database.GetGeohashes(ctx, geohashes_cb)
-
-	if err != nil {
-		return err
 	}
 
 	count_geohashes := len(geohashes)
@@ -319,29 +317,26 @@ func WriteLocationsWithGeohash(ctx context.Context, opts *WriteLocationsWithGeoh
 
 	count := 0
 
-	cb_func := func(ctx context.Context, loc *location.Location) error {
+	opts.Logger.Debug("Get locations with geohash", "label", opts.Label)
+	t1 := time.Now()
+
+	for loc, err := range opts.Database.GetWithGeohash(ctx, opts.Geohash) {
+
+		if err != nil {
+			return count, fmt.Errorf("Failed to resolve location for geohash (%s), %w", opts.Geohash, err)
+		}
 
 		enc_loc, err := json.Marshal(loc)
 
 		if err != nil {
 			opts.Logger.Error("Failed to encode location", "label", opts.Label, "id", loc.ID, "error", err)
-			return fmt.Errorf("Failed to encode %s location %s, %w", opts.Label, loc.ID, err)
+			return count, fmt.Errorf("Failed to encode %s location %s, %w", opts.Label, loc.ID, err)
 		}
 
 		opts.Writer.Write(enc_loc)
 		opts.Writer.Write([]byte("\n"))
 
 		count += 1
-		return nil
-	}
-
-	opts.Logger.Debug("Get locations with geohash", "label", opts.Label)
-	t1 := time.Now()
-
-	err := opts.Database.GetWithGeohash(ctx, opts.Geohash, cb_func)
-
-	if err != nil {
-		return count, fmt.Errorf("Failed to get %s locations with geohash %s, %w", opts.Label, opts.Geohash, err)
 	}
 
 	opts.Logger.Debug("Got locations with geohash", "label", opts.Label, "count", count, "time", time.Since(t1))

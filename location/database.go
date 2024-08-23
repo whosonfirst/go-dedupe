@@ -3,6 +3,7 @@ package location
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/url"
 	"sort"
 	"strings"
@@ -20,9 +21,11 @@ type Database interface {
 	// GetById returns a `Location` record matching an identifier in the underlying database implementation.
 	GetById(context.Context, string) (*Location, error)
 	// GetGeohashes returns the unique set of geohashes for all the `Location` records stored in the underlying database implementation.
-	GetGeohashes(context.Context, GetGeohashesCallback) error
+	// GetGeohashes(context.Context, GetGeohashesCallback) error
+	GetGeohashes(context.Context) iter.Seq2[string, error]
 	// GetWithGeohash returns all the `Location` records matching a given geohash in the underlying database implementation.
-	GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
+	// GetWithGeohash(context.Context, string, GetWithGeohashCallback) error
+	GetWithGeohash(context.Context, string) iter.Seq2[*Location, error]
 	// Close performs and terminating functions required by the database.
 	Close(context.Context) error
 }
