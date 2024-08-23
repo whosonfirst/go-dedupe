@@ -4,4 +4,3 @@ package vector
 // https://github.com/neuml/txtai
 // https://neuml.github.io/txtai/install/
 // https://github.com/neuml/txtai.go
-
