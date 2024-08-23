@@ -19,9 +19,9 @@ type Embedder interface {
 	// Embeddings32 returns the embeddings for a string as a list of float32 values.
 	Embeddings32(context.Context, string) ([]float32, error)
 	// ImageEmbeddings returns the embeddings for a base64-encoded image as a list of float64 values.
-	ImageEmbeddings(context.Context, string) ([]float64, error)
+	ImageEmbeddings(context.Context, []byte) ([]float64, error)
 	// ImageEmbeddings32 returns the embeddings for a base64-encoded image as a list of float32 values.
-	ImageEmbeddings32(context.Context, string) ([]float32, error)
+	ImageEmbeddings32(context.Context, []byte) ([]float32, error)
 }
 
 // EmbedderInitializationFunc is a function defined by individual embedder package and used to create
