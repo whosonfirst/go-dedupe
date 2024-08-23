@@ -5,6 +5,7 @@ package overture
 import (
 	"context"
 	"fmt"
+	"iter"
 	"log/slog"
 	"net/url"
 	"strconv"
@@ -105,63 +106,76 @@ func NewOvertureIterator(ctx context.Context, uri string) (iterator.Iterator, er
 	return iter, nil
 }
 
-func (iter *OvertureIterator) IterateWithCallback(ctx context.Context, cb iterator.IteratorCallback, uris ...string) error {
+func (iter *OvertureIterator) Iterate(ctx context.Context, uris ...string) iter.Seq2[[]byte, error] {
 
-	throttle := make(chan bool, iter.max_workers)
+	return func(yield func([]byte, error) bool) {
 
-	for i := 0; i < iter.max_workers; i++ {
-		throttle <- true
-	}
+		throttle := make(chan bool, iter.max_workers)
 
-	wg := new(sync.WaitGroup)
+		for i := 0; i < iter.max_workers; i++ {
+			throttle <- true
+		}
 
-	walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
+		wg := new(sync.WaitGroup)
 
-		if iter.start_after > 0 && rec.LineNumber < iter.start_after {
-			// monitor.Signal(ctx)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		walk_cb := func(ctx context.Context, path string, rec *walk.WalkRecord) error {
+
+			if iter.start_after > 0 && rec.LineNumber < iter.start_after {
+				// monitor.Signal(ctx)
+				return nil
+			}
+
+			<-throttle
+
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				// pass
+			}
+
+			wg.Add(1)
+
+			go func(path string, rec *walk.WalkRecord) {
+
+				logger := slog.Default()
+				logger = logger.With("path", path)
+				logger = logger.With("line number", rec.LineNumber)
+
+				defer func() {
+					wg.Done()
+					throttle <- true
+				}()
+
+				if !yield(rec.Body, nil) {
+					logger.Error("Failed to yield record")
+				}
+
+			}(path, rec)
+
 			return nil
 		}
 
-		<-throttle
+		walk_opts := &geojsonl.WalkOptions{
+			SourceBucket: iter.bucket,
+			Callback:     walk_cb,
+			IsBzipped:    iter.is_bzipped,
+		}
 
-		wg.Add(1)
+		err := geojsonl.Walk(ctx, walk_opts, uris...)
 
-		go func(path string, rec *walk.WalkRecord) {
+		if err != nil {
+			slog.Error("Failed to walk uris", "error", err)
+			return
+		}
 
-			logger := slog.Default()
-			logger = logger.With("path", path)
-			logger = logger.With("line number", rec.LineNumber)
-
-			defer func() {
-				wg.Done()
-				throttle <- true
-			}()
-
-			err := cb(ctx, rec.Body)
-
-			if err != nil {
-				logger.Error("Iterator callback for record failed", "error", err)
-			}
-
-		}(path, rec)
-
-		return nil
+		wg.Wait()
+		return
 	}
 
-	walk_opts := &geojsonl.WalkOptions{
-		SourceBucket: iter.bucket,
-		Callback:     walk_cb,
-		IsBzipped:    iter.is_bzipped,
-	}
-
-	err := geojsonl.Walk(ctx, walk_opts, uris...)
-
-	if err != nil {
-		return err
-	}
-
-	wg.Wait()
-	return nil
 }
 
 func (iter *OvertureIterator) Close(ctx context.Context) error {

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"log/slog"
 	"net/url"
 	"strconv"
@@ -60,125 +61,129 @@ func NewILMSIterator(ctx context.Context, uri string) (iterator.Iterator, error)
 	return iter, nil
 }
 
-func (iter *ILMSIterator) IterateWithCallback(ctx context.Context, cb iterator.IteratorCallback, uris ...string) error {
+func (iter *ILMSIterator) Iterate(ctx context.Context, uris ...string) iter.Seq2[[]byte, error] {
 
-	/*
-		throttle := make(chan bool, iter.max_workers)
+	return func(yield func([]byte, error) bool) {
 
-		for i := 0; i < iter.max_workers; i++ {
-			throttle <- true
-		}
-	*/
+		/*
+			throttle := make(chan bool, iter.max_workers)
 
-	done_ch := make(chan bool)
-	err_ch := make(chan error)
-
-	for _, path := range uris {
-
-		go func(path string) {
-
-			defer func() {
-				done_ch <- true
-			}()
-
-			err := iter.iteratePathWithCallback(ctx, cb, path)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to iterate %s, %w", path, err)
+			for i := 0; i < iter.max_workers; i++ {
+				throttle <- true
 			}
-		}(path)
-	}
+		*/
 
-	remaining := len(uris)
+		done_ch := make(chan bool)
+		err_ch := make(chan error)
 
-	for remaining > 0 {
-		select {
-		case <-done_ch:
-			remaining -= 1
-		case err := <-err_ch:
-			slog.Error(err.Error())
+		for _, path := range uris {
+
+			go func(path string) {
+
+				defer func() {
+					done_ch <- true
+				}()
+
+				for body, err := range iter.iteratePath(ctx, path) {
+					yield(body, err)
+				}
+
+			}(path)
 		}
-	}
 
-	return nil
+		remaining := len(uris)
+
+		for remaining > 0 {
+			select {
+			case <-done_ch:
+				remaining -= 1
+			case err := <-err_ch:
+				slog.Error(err.Error())
+			}
+		}
+
+		return
+	}
 }
 
 func (iter *ILMSIterator) Close(ctx context.Context) error {
 	return nil
 }
 
-func (iter *ILMSIterator) iteratePathWithCallback(ctx context.Context, cb iterator.IteratorCallback, path string) error {
+func (iter *ILMSIterator) iteratePath(ctx context.Context, path string) iter.Seq2[[]byte, error] {
 
-	csv_r, err := csvdict.NewReaderFromPath(path)
+	return func(yield func([]byte, error) bool) {
 
-	if err != nil {
-		return fmt.Errorf("Failed to create CSV reader for %s, %w", path, err)
+		csv_r, err := csvdict.NewReaderFromPath(path)
+
+		if err != nil {
+			yield(nil, fmt.Errorf("Failed to create CSV reader for %s, %w", path, err))
+		}
+
+		for {
+			row, err := csv_r.Read()
+
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+
+			logger := slog.Default()
+			logger = logger.With("mid", row["MID"])
+			logger = logger.With("name", row["COMMONNAME"])
+
+			str_lat, ok := row["LATITUDE"]
+
+			if !ok || strings.TrimSpace(str_lat) == "" {
+				logger.Debug("Row is missing latitude, skipping")
+				continue
+			}
+
+			str_lon, ok := row["LONGITUDE"]
+
+			if !ok || strings.TrimSpace(str_lon) == "" {
+				logger.Debug("Row is missing longitude, skipping")
+				continue
+			}
+
+			lat, err := strconv.ParseFloat(str_lat, 64)
+
+			if err != nil {
+				logger.Warn("Invalid latitude for row, skipping", "latitude", str_lat, "error", err)
+				continue
+			}
+
+			lon, err := strconv.ParseFloat(str_lon, 64)
+
+			if err != nil {
+				logger.Warn("Invalid longitude for row, skipping", "longitude", str_lon, "error", err)
+				continue
+			}
+
+			pt := orb.Point([2]float64{lon, lat})
+
+			f := geojson.NewFeature(pt)
+
+			for k, v := range row {
+				f.Properties[k] = v
+			}
+
+			enc_f, err := f.MarshalJSON()
+
+			if err != nil {
+				logger.Warn("Failed to marshal feature for row, skipping", "error", err)
+				continue
+			}
+
+			if !yield(enc_f, nil) {
+				logger.Warn("Callback failed for row", "error", err)
+			}
+		}
+
+		return
 	}
-
-	for {
-		row, err := csv_r.Read()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		logger := slog.Default()
-		logger = logger.With("mid", row["MID"])
-		logger = logger.With("name", row["COMMONNAME"])
-
-		str_lat, ok := row["LATITUDE"]
-
-		if !ok || strings.TrimSpace(str_lat) == "" {
-			logger.Debug("Row is missing latitude, skipping")
-			continue
-		}
-
-		str_lon, ok := row["LONGITUDE"]
-
-		if !ok || strings.TrimSpace(str_lon) == "" {
-			logger.Debug("Row is missing longitude, skipping")
-			continue
-		}
-
-		lat, err := strconv.ParseFloat(str_lat, 64)
-
-		if err != nil {
-			logger.Warn("Invalid latitude for row, skipping", "latitude", str_lat, "error", err)
-			continue
-		}
-
-		lon, err := strconv.ParseFloat(str_lon, 64)
-
-		if err != nil {
-			logger.Warn("Invalid longitude for row, skipping", "longitude", str_lon, "error", err)
-			continue
-		}
-
-		pt := orb.Point([2]float64{lon, lat})
-
-		f := geojson.NewFeature(pt)
-
-		for k, v := range row {
-			f.Properties[k] = v
-		}
-
-		enc_f, err := f.MarshalJSON()
-
-		if err != nil {
-			logger.Warn("Failed to marshal feature for row, skipping", "error", err)
-			continue
-		}
-
-		err = cb(ctx, enc_f)
-
-		if err != nil {
-			logger.Warn("Callback failed for row", "error", err)
-		}
-	}
-
-	return nil
 }

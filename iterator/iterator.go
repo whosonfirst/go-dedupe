@@ -3,6 +3,7 @@ package iterator
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/url"
 	"sort"
 	"strings"
@@ -10,12 +11,10 @@ import (
 	"github.com/aaronland/go-roster"
 )
 
-type IteratorCallback func(context.Context, []byte) error
-
 // Iterator is an interface for procesing arbitrary data sources that yield individual JSON-encoded GeoJSON Features.
 type Iterator interface {
-	// Iterate(context.Context, ...string) iter.Seq2[*geojson.Feature, error]
-	IterateWithCallback(context.Context, IteratorCallback, ...string) error
+	// Iterate
+	Iterate(context.Context, ...string) iter.Seq2[[]byte, error]
 	// Close performs and terminating functions required by the iterator
 	Close(context.Context) error
 }

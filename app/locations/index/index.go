@@ -68,7 +68,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 	monitor.Start(ctx, os.Stderr)
 	defer monitor.Stop(ctx)
 
-	iter_cb := func(ctx context.Context, body []byte) error {
+	for body, err := range iter.Iterate(ctx, uris...) {
+
+		if err != nil {
+			return fmt.Errorf("Failed to walk source, %w", err)
+		}
 
 		loc, err := prsr.Parse(ctx, body)
 
@@ -90,13 +94,6 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		slog.Debug("Added location", "id", loc.ID, "location", loc.String())
 
 		monitor.Signal(ctx)
-		return nil
-	}
-
-	err = iter.IterateWithCallback(ctx, iter_cb, uris...)
-
-	if err != nil {
-		return fmt.Errorf("Failed to walk, %v", err)
 	}
 
 	return nil
