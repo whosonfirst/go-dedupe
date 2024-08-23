@@ -32,7 +32,7 @@ import (
 )
 
 ctx := context.Background()
-, _ := embeddings.NewEmbedder(ctx, "chromemollama://?{PARAMETERS")
+e, _ := embeddings.NewEmbedder(ctx, "chromemollama://?{PARAMETERS")
 ```
 
 Valid parameters for the `ChromemOllamaEmbedder` implemetation are:
@@ -57,7 +57,7 @@ import (
 )
 
 ctx := context.Background()
-, _ := embeddings.NewEmbedder(ctx, "llamafile://{HOST}:{PORT}?{PARAMETERS")
+e, _ := embeddings.NewEmbedder(ctx, "llamafile://{HOST}:{PORT}?{PARAMETERS")
 ```
 
 Valid parameters for the `LlamafileEmbedder` implemetation are:
@@ -82,7 +82,7 @@ import (
 )
 
 ctx := context.Background()
-, _ := embeddings.NewEmbedder(ctx, "ollama://?{PARAMETERS")
+e, _ := embeddings.NewEmbedder(ctx, "ollama://?{PARAMETERS")
 ```
 
 Valid parameters for the `OllamaEmbedder` implemetation are:
