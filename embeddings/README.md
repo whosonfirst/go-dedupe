@@ -157,6 +157,9 @@ def embeddings_image():
     req = request.json
     body = base64.b64decode(req["image_data"][0]["data"])
 
+    # Note that `delete_on_close=False` is a Python 3.12-ism
+    # Use `delete=False` for Python 3.11
+    
     with tempfile.NamedTemporaryFile(delete_on_close=False, mode="wb") as wr:
 
         wr.write(body)
