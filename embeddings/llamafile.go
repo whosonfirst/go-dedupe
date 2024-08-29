@@ -16,6 +16,7 @@ import (
 	_ "io"
 	"net/http"
 	"net/url"
+	"strings"
 	"strconv"
 	"time"
 )
@@ -66,6 +67,14 @@ func NewLlamafileEmbedder(ctx context.Context, uri string) (Embedder, error) {
 
 	if u.Host != "" {
 		host = u.Host
+
+		parts := strings.Split(host, ":")
+
+		if len(parts) < 1 {
+			return nil, fmt.Errorf("Failed to parse host component of URI")
+		}
+
+		host = parts[0]
 	}
 
 	if u.Port() != "" {
