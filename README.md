@@ -74,6 +74,7 @@ The following data source (providers) have working implementations (iterators an
 * [Chromem (Ollama API)](embeddings#chromemollamaembedder)
 * [llamafile (API)](embeddings#llamafileembedder)
 * [Ollama (API)](embeddings#ollamaembedder)
+* [OpenCLIP (API)](embeddings#openclipembedder)
 
 ### Embeddings implementations (third-party)
 
