@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -38,7 +39,7 @@ type DB struct {
 
 // NewDB creates a new in-memory chromem-go DB.
 // While it doesn't write files when you add collections and documents, you can
-// still use [DB.Export] and [DB.Import] to export and import the the entire DB
+// still use [DB.Export] and [DB.Import] to export and import the entire DB
 // from a file.
 func NewDB() *DB {
 	return &DB{
@@ -51,18 +52,19 @@ func NewDB() *DB {
 // If compress is true, the files are compressed with gzip.
 //
 // The persistence covers the collections (including their documents) and the metadata.
-// However it doesn't cover the EmbeddingFunc, as functions can't be serialized.
-// When some data is persisted and you create a new persistent DB with the same
+// However, it doesn't cover the EmbeddingFunc, as functions can't be serialized.
+// When some data is persisted, and you create a new persistent DB with the same
 // path, you'll have to provide the same EmbeddingFunc as before when getting an
 // existing collection and adding more documents to it.
 //
-// Currently the persistence is done synchronously on each write operation, and
+// Currently, the persistence is done synchronously on each write operation, and
 // each document addition leads to a new file, encoded as gob. In the future we
 // will make this configurable (encoding, async writes, WAL-based writes, etc.).
 //
 // In addition to persistence for each added collection and document you can use
-// [DB.Export] and [DB.Import] to export and import the entire DB to/from a file,
-// which also works for the pure in-memory DB.
+// [DB.ExportToFile] / [DB.ExportToWriter] and [DB.ImportFromFile] /
+// [DB.ImportFromReader] to export and import the entire DB to/from a file or
+// writer/reader, which also works for the pure in-memory DB.
 func NewPersistentDB(path string, compress bool) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
@@ -198,9 +200,12 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 //
-// - filePath: Mandatory, must not be empty
-// - encryptionKey: Optional, must be 32 bytes long if provided
-func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
+//   - filePath: Mandatory, must not be empty
+//   - encryptionKey: Optional, must be 32 bytes long if provided
+//   - collections: Optional. If provided, only the collections with the given names
+//     are imported. Non-existing collections are ignored.
+//     If not provided, all collections are imported.
+func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -244,6 +249,9 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 	}
 
 	for _, pc := range persistenceDB.Collections {
+		if len(collections) > 0 && !slices.Contains(collections, pc.Name) {
+			continue
+		}
 		c := &Collection{
 			Name: pc.Name,
 
@@ -253,6 +261,17 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 		if db.persistDirectory != "" {
 			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
 			c.compress = db.compress
+			err = c.persistMetadata()
+			if err != nil {
+				return fmt.Errorf("couldn't persist collection metadata: %w", err)
+			}
+			for _, doc := range c.documents {
+				docPath := c.getDocPath(doc.ID)
+				err = persistToFile(docPath, doc, c.compress, "")
+				if err != nil {
+					return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
+				}
+			}
 		}
 		db.collections[c.Name] = c
 	}
@@ -266,10 +285,16 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 // If the writer has to be closed, it's the caller's responsibility.
+// This can be used to import DBs from object storage like S3. See
+// https://github.com/philippgille/chromem-go/tree/main/examples/s3-export-import
+// for an example.
 //
-// - reader: An implementation of [io.ReadSeeker]
-// - encryptionKey: Optional, must be 32 bytes long if provided
-func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error {
+//   - reader: An implementation of [io.ReadSeeker]
+//   - encryptionKey: Optional, must be 32 bytes long if provided
+//   - collections: Optional. If provided, only the collections with the given names
+//     are imported. Non-existing collections are ignored.
+//     If not provided, all collections are imported.
+func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
 		if len(encryptionKey) != 32 {
@@ -299,6 +324,9 @@ func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error
 	}
 
 	for _, pc := range persistenceDB.Collections {
+		if len(collections) > 0 && !slices.Contains(collections, pc.Name) {
+			continue
+		}
 		c := &Collection{
 			Name: pc.Name,
 
@@ -308,6 +336,17 @@ func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error
 		if db.persistDirectory != "" {
 			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
 			c.compress = db.compress
+			err = c.persistMetadata()
+			if err != nil {
+				return fmt.Errorf("couldn't persist collection metadata: %w", err)
+			}
+			for _, doc := range c.documents {
+				docPath := c.getDocPath(doc.ID)
+				err := persistToFile(docPath, doc, c.compress, "")
+				if err != nil {
+					return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
+				}
+			}
 		}
 		db.collections[c.Name] = c
 	}
@@ -339,7 +378,10 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 //   - compress: Optional. Compresses as gzip if true.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
-func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string) error {
+//   - collections: Optional. If provided, only the collections with the given names
+//     are exported. Non-existing collections are ignored.
+//     If not provided, all collections are exported.
+func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
 		if compress {
@@ -373,10 +415,12 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string)
 	defer db.collectionsLock.RUnlock()
 
 	for k, v := range db.collections {
-		persistenceDB.Collections[k] = &persistenceCollection{
-			Name:      v.Name,
-			Metadata:  v.metadata,
-			Documents: v.documents,
+		if len(collections) == 0 || slices.Contains(collections, k) {
+			persistenceDB.Collections[k] = &persistenceCollection{
+				Name:      v.Name,
+				Metadata:  v.metadata,
+				Documents: v.documents,
+			}
 		}
 	}
 
@@ -392,12 +436,18 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string)
 // optionally compressed with flate (as gzip) and optionally encrypted with AES-GCM.
 // This works for both the in-memory and persistent DBs.
 // If the writer has to be closed, it's the caller's responsibility.
+// This can be used to export DBs to object storage like S3. See
+// https://github.com/philippgille/chromem-go/tree/main/examples/s3-export-import
+// for an example.
 //
 //   - writer: An implementation of [io.Writer]
 //   - compress: Optional. Compresses as gzip if true.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
-func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey string) error {
+//   - collections: Optional. If provided, only the collections with the given names
+//     are exported. Non-existing collections are ignored.
+//     If not provided, all collections are exported.
+func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
 		if len(encryptionKey) != 32 {
@@ -422,10 +472,12 @@ func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey stri
 	defer db.collectionsLock.RUnlock()
 
 	for k, v := range db.collections {
-		persistenceDB.Collections[k] = &persistenceCollection{
-			Name:      v.Name,
-			Metadata:  v.metadata,
-			Documents: v.documents,
+		if len(collections) == 0 || slices.Contains(collections, k) {
+			persistenceDB.Collections[k] = &persistenceCollection{
+				Name:      v.Name,
+				Metadata:  v.metadata,
+				Documents: v.documents,
+			}
 		}
 	}
 
@@ -464,7 +516,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 // ListCollections returns all collections in the DB, mapping name->Collection.
 // The returned map is a copy of the internal map, so it's safe to directly modify
 // the map itself. Direct modifications of the map won't reflect on the DB's map.
-// To do that use the DB's methods like CreateCollection() and DeleteCollection().
+// To do that use the DB's methods like [DB.CreateCollection] and [DB.DeleteCollection].
 // The map is not an entirely deep clone, so the collections themselves are still
 // the original ones. Any methods on the collections like Add() for adding documents
 // will be reflected on the DB's collections and are concurrency-safe.
