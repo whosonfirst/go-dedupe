@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -25,6 +26,67 @@ type Collection struct {
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
+}
+
+// NegativeMode represents the mode to use for the negative text.
+// See QueryOptions for more information.
+type NegativeMode string
+
+const (
+	// NEGATIVE_MODE_FILTER filters out results based on the similarity between the
+	// negative embedding and the document embeddings.
+	// NegativeFilterThreshold controls the threshold for filtering. Documents with
+	// similarity above the threshold will be removed from the results.
+	NEGATIVE_MODE_FILTER NegativeMode = "filter"
+
+	// NEGATIVE_MODE_SUBTRACT subtracts the negative embedding from the query embedding.
+	// This is the default behavior.
+	NEGATIVE_MODE_SUBTRACT NegativeMode = "subtract"
+
+	// The default threshold for the negative filter.
+	DEFAULT_NEGATIVE_FILTER_THRESHOLD = 0.5
+)
+
+// QueryOptions represents the options for a query.
+type QueryOptions struct {
+	// The text to search for.
+	QueryText string
+
+	// The embedding of the query to search for. It must be created
+	// with the same embedding model as the document embeddings in the collection.
+	// The embedding will be normalized if it's not the case yet.
+	// If both QueryText and QueryEmbedding are set, QueryEmbedding will be used.
+	QueryEmbedding []float32
+
+	// The number of results to return.
+	NResults int
+
+	// Conditional filtering on metadata.
+	Where map[string]string
+
+	// Conditional filtering on documents.
+	WhereDocument map[string]string
+
+	// Negative is the negative query options.
+	// They can be used to exclude certain results from the query.
+	Negative NegativeQueryOptions
+}
+
+type NegativeQueryOptions struct {
+	// Mode is the mode to use for the negative text.
+	Mode NegativeMode
+
+	// Text is the text to exclude from the results.
+	Text string
+
+	// Embedding is the embedding of the negative text. It must be created
+	// with the same embedding model as the document embeddings in the collection.
+	// The embedding will be normalized if it's not the case yet.
+	// If both Text and Embedding are set, Embedding will be used.
+	Embedding []float32
+
+	// FilterThreshold is the threshold for the negative filter. Used when Mode is NEGATIVE_MODE_FILTER.
+	FilterThreshold float32
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
@@ -50,23 +112,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		safeName := hash2hex(name)
 		c.persistDirectory = filepath.Join(dbDir, safeName)
 		c.compress = compress
-		// Persist name and metadata
-		metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
-		metadataPath += ".gob"
-		if c.compress {
-			metadataPath += ".gz"
-		}
-		pc := struct {
-			Name     string
-			Metadata map[string]string
-		}{
-			Name:     name,
-			Metadata: m,
-		}
-		err := persistToFile(metadataPath, pc, compress, "")
-		if err != nil {
-			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
-		}
+		return c, c.persistMetadata()
 	}
 
 	return c, nil
@@ -81,16 +127,16 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 //     you can filter on this metadata. Optional.
 //   - contents: The contents to associate with the embeddings.
 //
-// This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
+// This is a Chroma-like method. For a more Go-idiomatic one, see [Collection.AddDocuments].
 func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string) error {
 	return c.AddConcurrently(ctx, ids, embeddings, metadatas, contents, 1)
 }
 
 // AddConcurrently is like Add, but adds embeddings concurrently.
-// This is mostly useful when you don't pass any embeddings so they have to be created.
+// This is mostly useful when you don't pass any embeddings, so they have to be created.
 // Upon error, concurrently running operations are canceled and the error is returned.
 //
-// This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
+// This is a Chroma-like method. For a more Go-idiomatic one, see [Collection.AddDocuments].
 func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string, concurrency int) error {
 	if len(ids) == 0 {
 		return errors.New("ids are empty")
@@ -103,7 +149,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("ids and embeddings must have the same length")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		embeddings = make([][]float32, len(ids))
 	}
 	if len(metadatas) != 0 {
@@ -111,7 +157,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("when metadatas is not empty it must have the same length as ids")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		metadatas = make([]map[string]string, len(ids))
 	}
 	if len(contents) != 0 {
@@ -119,7 +165,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("ids and contents must have the same length")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		contents = make([]string, len(ids))
 	}
 	if concurrency < 1 {
@@ -246,6 +292,31 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	return nil
 }
 
+// GetByID returns a document by its ID.
+// The returned document is a copy of the original document, so it can be safely
+// modified without affecting the collection.
+func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
+	if id == "" {
+		return Document{}, errors.New("document ID is empty")
+	}
+
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	doc, ok := c.documents[id]
+	if ok {
+		// Clone the document
+		res := *doc
+		// Above copies the simple fields, but we need to copy the slices and maps
+		res.Metadata = maps.Clone(doc.Metadata)
+		res.Embedding = slices.Clone(doc.Embedding)
+
+		return res, nil
+	}
+
+	return Document{}, fmt.Errorf("document with ID '%v' not found", id)
+}
+
 // Delete removes document(s) from the collection.
 //
 //   - where: Conditional filtering on metadata. Optional.
@@ -323,7 +394,7 @@ type Result struct {
 	Similarity float32
 }
 
-// Performs an exhaustive nearest neighbor search on the collection.
+// Query performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryText: The text to search for. Its embedding will be created using the
 //     collection's embedding function.
@@ -336,15 +407,66 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 		return nil, errors.New("queryText is empty")
 	}
 
-	queryVectors, err := c.embed(ctx, queryText)
+	queryVector, err := c.embed(ctx, queryText)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
 	}
 
-	return c.QueryEmbedding(ctx, queryVectors, nResults, where, whereDocument)
+	return c.QueryEmbedding(ctx, queryVector, nResults, where, whereDocument)
 }
 
-// Performs an exhaustive nearest neighbor search on the collection.
+// QueryWithOptions performs an exhaustive nearest neighbor search on the collection.
+//
+//   - options: The options for the query. See [QueryOptions] for more information.
+func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions) ([]Result, error) {
+	if options.QueryText == "" && len(options.QueryEmbedding) == 0 {
+		return nil, errors.New("QueryText and QueryEmbedding options are empty")
+	}
+
+	var err error
+	queryVector := options.QueryEmbedding
+	if len(queryVector) == 0 {
+		queryVector, err = c.embed(ctx, options.QueryText)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
+		}
+	}
+
+	negativeFilterThreshold := options.Negative.FilterThreshold
+	negativeVector := options.Negative.Embedding
+	if len(negativeVector) == 0 && options.Negative.Text != "" {
+		negativeVector, err = c.embed(ctx, options.Negative.Text)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create embedding of negative: %w", err)
+		}
+	}
+
+	if len(negativeVector) != 0 {
+		if !isNormalized(negativeVector) {
+			negativeVector = normalizeVector(negativeVector)
+		}
+
+		if options.Negative.Mode == NEGATIVE_MODE_SUBTRACT {
+			queryVector = subtractVector(queryVector, negativeVector)
+			queryVector = normalizeVector(queryVector)
+		} else if options.Negative.Mode == NEGATIVE_MODE_FILTER {
+			if negativeFilterThreshold == 0 {
+				negativeFilterThreshold = DEFAULT_NEGATIVE_FILTER_THRESHOLD
+			}
+		} else {
+			return nil, fmt.Errorf("unsupported negative mode: %q", options.Negative.Mode)
+		}
+	}
+
+	result, err := c.queryEmbedding(ctx, queryVector, negativeVector, negativeFilterThreshold, options.NResults, options.Where, options.WhereDocument)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// QueryEmbedding performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryEmbedding: The embedding of the query to search for. It must be created
 //     with the same embedding model as the document embeddings in the collection.
@@ -354,6 +476,11 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+	return c.queryEmbedding(ctx, queryEmbedding, nil, 0, nResults, where, whereDocument)
+}
+
+// queryEmbedding performs an exhaustive nearest neighbor search on the collection.
+func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativeEmbeddings []float32, negativeFilterThreshold float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
 	if len(queryEmbedding) == 0 {
 		return nil, errors.New("queryEmbedding is empty")
 	}
@@ -399,18 +526,13 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 	}
 
 	// For the remaining documents, get the most similar docs.
-	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, filteredDocs, resLen)
+	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, negativeEmbeddings, negativeFilterThreshold, filteredDocs, resLen)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get most similar docs: %w", err)
 	}
 
-	// As long as we don't filter by threshold, resLen should match len(nMaxDocs).
-	if resLen != len(nMaxDocs) {
-		return nil, fmt.Errorf("internal error: expected %d results, got %d", resLen, len(nMaxDocs))
-	}
-
-	res := make([]Result, 0, resLen)
-	for i := 0; i < resLen; i++ {
+	res := make([]Result, 0, len(nMaxDocs))
+	for i := 0; i < len(nMaxDocs); i++ {
 		res = append(res, Result{
 			ID:         nMaxDocs[i].docID,
 			Metadata:   c.documents[nMaxDocs[i].docID].Metadata,
@@ -432,4 +554,27 @@ func (c *Collection) getDocPath(docID string) string {
 		docPath += ".gz"
 	}
 	return docPath
+}
+
+// persistMetadata persists the collection metadata to disk
+func (c *Collection) persistMetadata() error {
+	// Persist name and metadata
+	metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
+	metadataPath += ".gob"
+	if c.compress {
+		metadataPath += ".gz"
+	}
+	pc := struct {
+		Name     string
+		Metadata map[string]string
+	}{
+		Name:     c.Name,
+		Metadata: c.metadata,
+	}
+	err := persistToFile(metadataPath, pc, c.compress, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

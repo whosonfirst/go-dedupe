@@ -1,3 +1,3 @@
-package database
+package vector
 
 // https://weaviate.io/developers/weaviate/quickstart

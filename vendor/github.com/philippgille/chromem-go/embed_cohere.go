@@ -15,9 +15,10 @@ import (
 type EmbeddingModelCohere string
 
 const (
-	EmbeddingModelCohereMultilingualV2      EmbeddingModelCohere = "embed-multilingual-v2.0"
-	EmbeddingModelCohereEnglishLightV2      EmbeddingModelCohere = "embed-english-light-v2.0"
-	EmbeddingModelCohereEnglishV2           EmbeddingModelCohere = "embed-english-v2.0"
+	EmbeddingModelCohereMultilingualV2 EmbeddingModelCohere = "embed-multilingual-v2.0"
+	EmbeddingModelCohereEnglishLightV2 EmbeddingModelCohere = "embed-english-light-v2.0"
+	EmbeddingModelCohereEnglishV2      EmbeddingModelCohere = "embed-english-v2.0"
+
 	EmbeddingModelCohereMultilingualLightV3 EmbeddingModelCohere = "embed-multilingual-light-v3.0"
 	EmbeddingModelCohereEnglishLightV3      EmbeddingModelCohere = "embed-english-light-v3.0"
 	EmbeddingModelCohereMultilingualV3      EmbeddingModelCohere = "embed-multilingual-v3.0"
@@ -63,7 +64,7 @@ type cohereResponse struct {
 //
 // When you set up a chromem-go collection with this embedding function, you might
 // want to create the document separately with [NewDocument] and then cut off the
-// prefix before adding the document to the collection. Otherwise when you query
+// prefix before adding the document to the collection. Otherwise, when you query
 // the collection, the returned documents will still have the prefix in their content.
 //
 //	cohereFunc := chromem.NewEmbeddingFuncCohere(cohereApiKey, chromem.EmbeddingModelCohereEnglishV3)

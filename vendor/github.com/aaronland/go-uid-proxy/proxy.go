@@ -44,6 +44,19 @@ func NewProxyProvider(ctx context.Context, uri string) (uid.Provider, error) {
 
 	q := u.Query()
 
+	status_monitor := false
+
+	if q.Has("status-monitor") {
+
+		v, err := strconv.ParseBool(q.Get("status-monitor"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid ?status-monitor= parameter, %w", err)
+		}
+
+		status_monitor = v
+	}
+
 	source_uri := q.Get("provider")
 
 	if source_uri == "" {
@@ -105,8 +118,12 @@ func NewProxyProvider(ctx context.Context, uri string) (uid.Provider, error) {
 	}
 
 	go pr.refillPool(ctx)
-	go pr.status(ctx)
 	go pr.monitor(ctx)
+
+	if status_monitor {
+		slog.Debug("Starting status monitor")
+		go pr.status(ctx)
+	}
 
 	if minimum > 0 {
 		refill <- true
@@ -148,6 +165,7 @@ func (pr *ProxyProvider) status(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			slog.Debug("Status monitor received done signal, exiting")
 			return
 		case <-time.After(5 * time.Second):
 			slog.Debug("Status", "pool length", pr.pool.Length(ctx))
