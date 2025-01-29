@@ -6,7 +6,7 @@ import (
 	"flag"
 	"io"
 	"log"
-	"log/slog"
+	_ "log/slog"
 	"os"
 
 	"github.com/whosonfirst/go-dedupe/embeddings"
