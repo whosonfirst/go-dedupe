@@ -197,7 +197,7 @@ func CompareLocationDatabases(ctx context.Context, opts *CompareLocationDatabase
 			logger := slog.Default()
 			logger = logger.With("geohash", geohash)
 
-			logger.Debug("Process geohash")
+			logger.Info("Process geohash")
 
 			source_suffix := fmt.Sprintf("*-%s-source.jsonl", geohash)
 			target_suffix := fmt.Sprintf("*-%s-target.jsonl", geohash)

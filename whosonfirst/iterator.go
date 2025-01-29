@@ -1,5 +1,7 @@
 package whosonfirst
 
+// ./bin/index-locations -iterator-uri whosonfirst:// -location-parser-uri whosonfirstvenues:// -location-database-uri 'sql://sqlite3?dsn=/usr/local/data/wof/wof-us-ca-locations.db?max-conns=1' /usr/local/data/wof/whosonfirst-data-venue-us-ca/
+
 import (
 	"context"
 	"fmt"

@@ -116,7 +116,7 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 
 	t1 := time.Now()
 
-	// logger.Info("Walk sources", "path", opts.SourceLocations)
+	logger.Info("Walk sources", "path", opts.SourceLocations)
 	err = walk_reader(ctx, source_r, source_walk_cb)
 
 	if err != nil {
@@ -138,7 +138,7 @@ func CompareLocationsForGeohash(ctx context.Context, opts *CompareLocationsForGe
 		geohash := opts.Geohash
 		threshold := opts.Threshold
 
-		logger.Debug("Compare location from target database", "location", loc.String())
+		logger.Info("Compare location from target database", "location", loc.String())
 
 		// t1 := time.Now()
 
@@ -235,6 +235,7 @@ func walk_reader(ctx context.Context, r io.Reader, cb func(ctx context.Context, 
 			case r := <-record_ch:
 
 				err := cb(ctx, r.Path, r)
+				// slog.Info("Process", "path", r.Path, "error", err)
 
 				r.CompletedChannel <- true
 

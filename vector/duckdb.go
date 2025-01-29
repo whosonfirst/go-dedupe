@@ -196,7 +196,7 @@ func (db *DuckDBDatabase) Query(ctx context.Context, loc *location.Location) ([]
 	rows, err := db.vec_db.QueryContext(ctx, q, string(v))
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to execute query, %w", err)
+		return nil, fmt.Errorf("Failed to execute query (%s), %w", q, err)
 	}
 
 	slog.Debug("Query context", "time", time.Since(t1))
