@@ -7,7 +7,7 @@ require (
 	github.com/aaronland/go-roster v1.0.0
 	github.com/aaronland/gocloud-blob v0.4.0
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
-	github.com/blevesearch/bleve/v2 v2.4.3
+	github.com/blevesearch/bleve/v2 v2.5.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/marcboeker/go-duckdb v1.8.3
@@ -38,7 +38,7 @@ require (
 )
 
 require (
-	github.com/RoaringBitmap/roaring v1.9.3 // indirect
+	github.com/RoaringBitmap/roaring/v2 v2.4.5 // indirect
 	github.com/aaronland/go-artisanal-integers v0.9.1 // indirect
 	github.com/aaronland/go-aws-auth v1.7.0 // indirect
 	github.com/aaronland/go-brooklynintegers-api v1.2.7 // indirect
@@ -67,24 +67,24 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.4 // indirect
 	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
-	github.com/bits-and-blooms/bitset v1.12.0 // indirect
-	github.com/blevesearch/bleve_index_api v1.1.12 // indirect
+	github.com/bits-and-blooms/bitset v1.22.0 // indirect
+	github.com/blevesearch/bleve_index_api v1.2.7 // indirect
 	github.com/blevesearch/geo v0.1.20 // indirect
-	github.com/blevesearch/go-faiss v1.0.23 // indirect
+	github.com/blevesearch/go-faiss v1.0.25 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
-	github.com/blevesearch/scorch_segment_api/v2 v2.2.16 // indirect
+	github.com/blevesearch/scorch_segment_api/v2 v2.3.9 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
-	github.com/blevesearch/vellum v1.0.10 // indirect
-	github.com/blevesearch/zapx/v11 v11.3.10 // indirect
-	github.com/blevesearch/zapx/v12 v12.3.10 // indirect
-	github.com/blevesearch/zapx/v13 v13.3.10 // indirect
-	github.com/blevesearch/zapx/v14 v14.3.10 // indirect
-	github.com/blevesearch/zapx/v15 v15.3.16 // indirect
-	github.com/blevesearch/zapx/v16 v16.1.8 // indirect
+	github.com/blevesearch/vellum v1.1.0 // indirect
+	github.com/blevesearch/zapx/v11 v11.4.1 // indirect
+	github.com/blevesearch/zapx/v12 v12.4.1 // indirect
+	github.com/blevesearch/zapx/v13 v13.4.1 // indirect
+	github.com/blevesearch/zapx/v14 v14.4.1 // indirect
+	github.com/blevesearch/zapx/v15 v15.4.1 // indirect
+	github.com/blevesearch/zapx/v16 v16.2.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/g8rswimmer/error-chain v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-sources v0.1.0 // indirect
 	github.com/whosonfirst/walk v0.0.2 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.etcd.io/bbolt v1.3.7 // indirect
+	go.etcd.io/bbolt v1.4.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/ratelimit v0.3.0 // indirect
@@ -127,7 +127,7 @@ require (
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
